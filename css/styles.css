@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/earlyaccess/cwtexfangsong.css');
+
+:root {
+    --red: #B32A19;
+    --cream: #FFF9E5;
+    --black: #1A1A1A;
+    --blue: #2563EB;
+}
+
+/* Default fonts based on language class */
+/* Global Base Styles & Unified Font Stack */
+body { 
+    background-color: var(--black); 
+    margin: 0; 
+    transition: background 0.3s; 
+    
+    /* 
+       1. English & Numbers ALWAYS use Space Mono 
+       2. Chinese Characters ALWAYS fall back to cwTeXFangSong 
+    */
+    font-family: 'Space Mono', 'cwTeXFangSong', monospace, serif;
+    
+    /* Lock the widest character spacing globally across both languages */
+    letter-spacing: 0.05em !important; 
+}
+
+/* Language-specific scaling for Chinese readability and layout consistency */
+
+/* 1. Global sizing adjustment for Chinese */
+body.lang-zh { 
+    /* English font FIRST, Chinese font SECOND */
+    font-family: 'Space Mono', 'cwTeXFangSong', monospace; 
+    line-height: 1.4; 
+}
+
+/* Home address: bigger in Chinese UI, 80% width */
+body.lang-zh #home-address-pill { width: 80%; }
+body.lang-zh #txt-address { font-size: 14px; line-height: 1.4; }
+
+
+/* Ensure Icons NEVER change font-family when language switches */
+.fa-solid, .fa-brands, .fa-regular, i {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+}
+
+/* 4. Fix Navbar scaling and LOCK Icon Sizes */
+body.lang-zh .nav-item span { 
+    font-size: 13px; 
+    line-height: 1.1;
+    letter-spacing: 0.05em;
+}
+
+.iphone-container { max-width: 400px; margin: 0 auto; background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+.mono { font-family: 'Space Mono', 'cwTeXFangSong', monospace; }
+.handwritten { font-family: 'Architects Daughter', 'cwTeXFangSong', cursive, serif; }
+
+.hidden-tab { display: none !important; }
+
+.btn-terracotta { background-color: var(--red); color: var(--cream); border: 2px solid var(--black); box-shadow: 3px 3px 0 0 var(--black); font-weight: bold; transition: all 0.1s; }
+.btn-terracotta:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--black); }
+
+.card-sketch { background: white; border: 2px solid var(--black); border-radius: 8px; box-shadow: 4px 4px 0 0 rgba(0,0,0,0.1); }
+
+.nav-item.active { color: var(--red); border-top: 4px solid var(--red); }
+
+/* Language Toggle Switch Styling */
+.lang-switch {
+    display: flex;
+    background: #eee;
+    padding: 2px;
+    border-radius: 4px;
+    border: 2px solid var(--black);
+}
+.lang-btn {
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.lang-btn.active {
+    background: var(--black);
+    color: white;
+}
+
+/* --- INCREASE SPECIFIC FONT SIZES FOR CHINESE READABILITY --- */
+body.lang-zh #btn-save span,
+body.lang-zh [data-i18n="home_btn_transport"],
+body.lang-zh [data-i18n="home_btn_survey"],
+body.lang-zh [data-i18n="notice_updates"],
+body.lang-zh [data-i18n="notice_gotit"],
+body.lang-zh [data-i18n="camera_btn"],
+body.lang-zh #uber-status-text,
+body.lang-zh [data-i18n="profile_drunk_title"],
+body.lang-zh #drunk-error,
+body.lang-zh [data-i18n="profile_save"],
+body.lang-zh #settings-modal span {
+    font-size: 18px !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.1em !important;
+}
+
+
+/* Slightly boost the Uber Status "ACTIVE/INACTIVE" span specifically since it might inherit poorly */
+body.lang-zh #status-text,
+body.lang-zh #status-subtext,
+body.lang-zh [data-i18n="uber_title"],
+body.lang-zh [data-i18n="profile_mayday"],
+body.lang-zh #uber-toggle-text {
+    font-size: 14px !important;
+}
+

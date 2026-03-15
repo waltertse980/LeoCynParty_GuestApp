@@ -1,0 +1,725 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leo & Cynthia - Guest App</title>
+    <link rel="icon" href="data:,">
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Custom CSS -->
+    <link href="./css/styles.css" rel="stylesheet">
+</head>
+<body class="lang-zh">
+
+    <!-- One-off Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-[var(--red)]">
+        <div class="max-w-xs w-full mx-4 bg-[var(--cream)] border-4 border-[var(--black)] p-6 rounded-lg shadow-2xl">
+            <h1 class="mono text-2xl mb-4 text-center">Guest Access</h1>
+            <p class="text-xs mb-4 text-center">
+                Enter your authorisation key from the hosts.
+            </p>
+            <input
+            id="auth-key-input"
+            type="text"
+            placeholder="Authorisation key"
+            class="w-full border border-black p-2 text-xs font-mono mb-3 rounded-none"
+            />
+            <button
+            id="auth-submit-btn"
+            class="w-full btn-terracotta p-2 text-xs uppercase"
+            >
+            Enter
+            </button>
+            <p id="auth-error" class="text-[10px] text-red-700 mt-2 hidden">
+            Invalid key. Please check with your host.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Existing app container (your Guest App) -->
+
+    <div id="app-container" class="iphone-container shadow-2xl hidden flex flex-col h-screen max-h-[100dvh]">
+        <!-- FLOATING SETTINGS GEAR -->
+        <button onclick="document.getElementById('settings-modal').classList.remove('hidden'); document.getElementById('settings-modal').classList.add('flex');" 
+                class="absolute top-4 right-4 z-40 w-10 h-10 bg-transparent text-gray-400 opacity-40 border-2 border-gray-400 rounded-full flex items-center justify-center transition hover:opacity-100">
+            <i class="fa-solid fa-gear text-xl"></i>
+        </button>
+
+        <!-- === TAB: HOME === -->
+        <div id="tab-home" class="flex-1 overflow-y-auto pb-24">
+            <div class="bg-[var(--red)] text-[var(--cream)] p-8 pt-12 border-b-4 border-black text-center relative">
+                <div class="mb-4">
+                    <p id="txt-incoming" class="handwritten text-xl rotate-[-2deg]">Incoming! Incoming!</p>
+                </div>
+                <h1 class="handwritten text-3xl mb-1">Leo & Cynthia</h1>
+                <p id="home-event-line"
+                class="text-[10px] uppercase tracking-widest opacity-80 mb-6 mono"
+                data-i18n="home_event_line">Second Draft • 28 Mar 2026 • 6:30pm</p>
+                
+                <div id="home-precheckin-header">
+                    <div class="flex gap-2 justify-center mb-6" id="countdown">
+                        <div class="bg-black/20 rounded p-2 backdrop-blur-sm border border-white/20">
+                            <div class="text-xl font-bold leading-none mono" id="cd-days">00</div>
+                            <div class="text-[12px] uppercase tracking-wide" id="lbl-days">日</div>
+                        </div>
+                        <div class="bg-black/20 rounded p-2 backdrop-blur-sm border border-white/20">
+                            <div class="text-xl font-bold leading-none mono" id="cd-hours">00</div>
+                            <div class="text-[12px] uppercase tracking-wide" id="lbl-hours">小時</div>
+                        </div>
+                        <div class="bg-black/20 rounded p-2 backdrop-blur-sm border border-white/20">
+                            <div class="text-xl font-bold leading-none mono" id="cd-mins">00</div>
+                            <div class="text-[12px] uppercase tracking-wide" id="lbl-mins">分鐘</div>
+                        </div>
+                    </div>
+                    <div id="home-address-pill"
+                        class="text-[8px] bg-black/30 p-2 rounded border border-white/20 leading-snug block w-4/5 mx-auto">
+                    <i class="fa-solid fa-location-dot text-white"></i>
+                    <span id="txt-address">銅鑼灣京士頓街9號Fashion Walk地下H01號舖</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <div id="status-card" class="card-sketch p-4 flex items-center gap-4 bg-white">
+                    <div id="status-icon" class="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center">
+                        <i id="status-icon-icon" class="fa-solid fa-clock text-yellow-700"></i>
+                    </div>
+                    <div>
+                        <h3 id="status-text" class="font-bold uppercase text-xs tracking-tight">狀態：即將開始…</h3>
+                        <p id="status-subtext"
+                        class="text-[10px] text-gray-500"
+                        data-i18n="home_doors_open">"Doors open at 18:30, 28 Mar 2026."</p>
+                    </div>
+                </div>
+
+                <button id="btn-transport" class="w-full btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm"
+                        data-modal-target="transport-modal">
+                    <i class="fa-solid fa-map"></i>
+                    <span data-i18n="home_btn_transport">TRANSPORTATION GUIDE</span>
+                </button>
+                
+                <button id="btn-survey" class="w-full btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm mb-4" 
+                        data-modal-target="survey-modal">
+                    <i class="fa-solid fa-clipboard"></i>
+                    <span data-i18n="home_btn_survey">QUICK SURVEY</span>
+                </button>
+
+                <div id="transport-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+                  <div class="bg-white rounded-lg p-6 max-w-md w-full relative max-h-[80vh] overflow-y-auto">
+                    <!-- Close X Icon (top-right corner) -->
+                    <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+                            data-modal-close>
+                      <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                
+                    <!-- Modal Content -->
+                    <div class="text-center">
+                      <h2 class="text-xl font-bold mb-6" data-i18n="transport_title">Transportation Guide</h2>
+                      <a href="https://www.google.com/maps/dir/?api=1&destination=Second+Draft%2C+503-505+Lockhart+Rd%2C+Wan+Chai%2C+Hong+Kong&travelmode=transit"
+                       class="block w-full max-w-sm mx-auto btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm mb-4"
+                       target="_blank">
+                          <i class="fa-solid fa-directions"></i>
+                          <i id="transport-action-icon" class="fa-solid fa-directions"></i>
+                        </a>
+                      <p class="text-xs text-gray-600" data-i18n="transport_desc">We'll use your current location for the best route.</p>
+                    </div>
+                    <!-- Add more content as needed -->
+                  </div>
+                </div>
+
+                <div id="survey-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+                    <div class="bg-white border-2 border-black rounded-lg p-6 max-w-md w-full relative max-h-[80vh] overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">                        <!-- Close X Icon (top-right corner) -->
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+                                data-modal-close>
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+
+                        <div class="text-center">
+                            <!-- Handwritten font to match headers -->
+                            <h2 class="text-xl font-bold mb-6 uppercase tracking-tight" data-i18n="survey_title">Quick Survey</h2>                            
+                            <div class="text-left space-y-5 text-xs font-mono">
+                                <!-- Section 1: Culinary -->
+                                <div>
+                                    <div class="font-bold mb-2 uppercase text-10px text-gray-500 tracking-widest" data-i18n="survey_culinary">Culinary needs</div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="sv-allergy-cb" onchange="toggleAllergyInput()" class="accent-black"> 
+                                            <span data-i18n="survey_allergy">Allergy</span>
+                                        </label>
+                                        <input type="text" id="sv-allergy-text" placeholder="Specify allergy..." data-i18n-placeholder="survey_allergy_ph"
+                                            class="hidden w-full border border-black p-2 mt-1 rounded-none bg-gray-50 focus:outline-none focus:ring-1 focus:ring-black">
+                                        
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="sv-veg" class="accent-black"> 
+                                            <span data-i18n="survey_vegetarian" >Vegetarian</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="sv-halal" class="accent-black"> 
+                                            <span data-i18n="survey_halal">Halal</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Section 2: Arrival -->
+                                <div>
+                                    <div class="font-bold mb-2 uppercase text-10px text-gray-500 tracking-widest" data-i18n="survey_arrival">Estimated arrival time</div>
+                                    <select id="sv-arrival-select" class="w-full border border-black p-2 rounded-none bg-white focus:outline-none">
+                                        <!-- Options generated by JS -->
+                                    </select>
+                                </div>
+
+                                <!-- Section 3: Notes -->
+                                <div>
+                                    <div class="font-bold mb-2 uppercase text-10px text-gray-500 tracking-widest" data-i18n="survey_notes">Notes to host</div>
+                                    <textarea id="sv-notes" rows="3" class="w-full border border-black p-2 rounded-none focus:outline-none" placeholder="Anything we need to know?" data-i18n-placeholder="survey_notes_ph"></textarea>
+                                </div>
+                                <!-- Submit Button matches btn-terracotta style -->
+                                <button id="btn-submit-survey" class="w-full btn-terracotta p-4 uppercase text-sm font-bold mt-4" data-modal-close>
+                                    <span data-i18n="survey_submit">Submit Survey</span>
+                                </button>                            
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="home-drink-card" class="bg-black text-white p-5 rounded-lg shadow-[4px_4px_0px_0px_rgba(179,42,25,1)] border-2 border-[var(--red)] relative overflow-hidden hidden">
+                    <div class="relative z-10 flex justify-between items-center">
+                        <div>
+                            <h3 id="lbl-drink-slots" class="font-bold mono text-xl text-[var(--red)]">Drink Slots</h3>
+                            <div id="txt-penalty" class="mt-2 bg-[var(--red)] text-white text-[10px] px-2 py-1 inline-block font-bold uppercase border border-white">
+                                ⚠️ Penalty Active: "Chase Progress"
+                            </div>
+                        </div>
+                        <div class="text-5xl font-black mono text-white">3</div>
+                    </div>
+                </div>
+
+                <div id="home-wifi-card" class="card-sketch p-4 bg-white hidden">
+                    <h3 class="font-bold text-10px uppercase flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-wifi text-var--red"></i>
+                        WiFi
+                    </h3>
+                    <div class="text-xs font-mono">
+                        <div>Network: <span id="wifi-ssid">EVENT_WIFI_NAME</span></div>
+                        <div>Password: <span id="wifi-pass">EVENT_WIFI_PASSWORD</span></div>
+                    </div>
+                </div>
+
+                <div id="home-tips-card" class="card-sketch p-4 bg-white hidden">
+                    <h3 class="font-bold text-10px uppercase flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-lightbulb text-var--red"></i>
+                        Party Tips
+                    </h3>
+                    <p id="txt-party-tip" class="text-xs text-gray-700"></p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB NOTICE -->
+        <div id="tab-notice" class="flex-1 overflow-y-auto bg-var(--cream) relative hidden-tab">
+            <div class="p-6 pb-6 pt-10 border-b-4 border-black bg-[var(--red)] sticky top-0 z-20 shadow-md flex flex-col justify-center relative">
+                <h1 class="mono text-3xl mb-1 text-[var(--cream)]" data-i18n="notice_board">Notice Board</h1>
+                <p class="text-[10px] uppercase text-[var(--cream)] opacity-90 font-bold mt-1 tracking-widest" data-i18n="notice_updates">Updates from the Hosts</p>
+            </div>
+            
+            <!-- Dynamic Notice Container -->
+            <div id="notice-list" class="p-4 space-y-4">
+                <div class="text-center text-xs text-gray-500 font-mono mt-4">Loading notices...</div>
+            </div>
+
+            <!-- Floating Admin Plus Button -->
+            <button id="btn-admin-add-notice" class="hidden fixed bottom-24 right-4 z-50 w-12 h-12 bg-[var(--red)] text-[var(--cream)] border-2 border-black rounded-full font-bold text-3xl flex items-center justify-center shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition">
+                +
+            </button>
+
+            <!-- NOTICE READER MODAL -->
+            <div id="notice-read-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+                <div class="bg-white border-2 border-black rounded-lg p-6 max-w-sm w-full relative shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                    <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition" onclick="document.getElementById('notice-read-modal').classList.add('hidden'); document.getElementById('notice-read-modal').classList.remove('flex');">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <h2 id="nr-subject" class="text-xl font-bold mb-1 uppercase tracking-tight pr-6 text-[var(--red)]">Subject</h2>
+                    <div id="nr-datetime" class="text-[10px] text-gray-400 mb-4 pb-2 border-b border-gray-200">Date</div>
+                    
+                    <div class="max-h-[50vh] overflow-y-auto">
+                        <p id="nr-content" class="text-xs text-gray-700 font-mono whitespace-pre-wrap leading-relaxed">Content goes here...</p>
+                    </div>
+
+                    <button onclick="document.getElementById('notice-read-modal').classList.add('hidden'); document.getElementById('notice-read-modal').classList.remove('flex');" class="w-full btn-terracotta p-3 uppercase text-sm font-bold mt-6" data-i18n="notice_ok">Got it</button>
+                </div>
+            </div>
+          
+            <!-- NOTICE ADD MODAL (Admin Only) -->
+            <div id="notice-add-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+                <div class="bg-white border-2 border-black rounded-lg p-6 max-w-md w-full relative shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                    <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition" onclick="document.getElementById('notice-add-modal').classList.add('hidden'); document.getElementById('notice-add-modal').classList.remove('flex');">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    <h2 class="text-xl font-bold mb-4 uppercase tracking-tight">New Notice</h2>
+                    
+                    <div class="space-y-3 text-xs font-mono">
+                        <div>
+                            <label class="font-bold uppercase text-[10px] text-gray-500">Subject</label>
+                            <input type="text" id="nt-subject" class="w-full border border-black p-2 rounded-none focus:outline-none" placeholder="Enter subject...">
+                        </div>
+                        <div>
+                            <label class="font-bold uppercase text-[10px] text-gray-500">Content</label>
+                            <textarea id="nt-content" rows="4" class="w-full border border-black p-2 rounded-none focus:outline-none" placeholder="Enter content..."></textarea>
+                        </div>
+                        <div>
+                            <label class="font-bold uppercase text-[10px] text-gray-500 block mb-1">Posting Time</label>
+                            <div class="flex items-center gap-2 mb-2 opacity-50 transition-opacity duration-300" id="nt-datetime-group">
+                                <select id="nt-dd" class="border border-black p-2 focus:outline-none bg-gray-100" disabled></select>
+                                <span>Mar 2026</span>
+                                <select id="nt-hh" class="border border-black p-2 focus:outline-none bg-gray-100" disabled></select>
+                                <span>:</span>
+                                <select id="nt-mm" class="border border-black p-2 focus:outline-none bg-gray-100" disabled></select>
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                <input type="checkbox" id="nt-now-cb" class="w-4 h-4 border-black" checked>
+                                <span class="font-bold">Post it now</span>
+                            </label>
+                        </div>
+                        <button id="btn-submit-notice" class="w-full btn-terracotta p-3 uppercase text-sm font-bold mt-4">Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTICE CONFIRM MODAL (Admin Only) -->
+            <div id="notice-confirm-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+                <div class="bg-white border-2 border-black rounded-lg p-6 max-w-sm w-full relative shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] text-center">
+                    <h2 class="text-xl font-bold mb-2 uppercase tracking-tight text-[var(--red)]">Confirm Posting?</h2>
+                    <p class="text-xs text-gray-600 mb-6 font-mono">This will be broadcast to all users once the posting time is reached.</p>
+                    <div class="flex gap-3">
+                        <button onclick="document.getElementById('notice-confirm-modal').classList.add('hidden'); document.getElementById('notice-confirm-modal').classList.remove('flex');" class="w-1/2 p-3 uppercase text-sm font-bold border-2 border-black bg-white hover:bg-gray-100 transition">Cancel</button>
+                        <button id="btn-final-confirm-notice" class="w-1/2 p-3 uppercase text-sm font-bold bg-[#16a34a] text-white border-2 border-black shadow-[3px_3px_0_0_#000] active:translate-y-[1px] active:translate-x-[1px] active:shadow-[1px_1px_0_0_#000] transition">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div> 
+
+        <!-- TAB CAMERA / SCAN -->
+        <div id="tab-camera" class="flex-1 overflow-hidden bg-gray-100 bg-zinc-900 relative flex flex-col items-center justify-center hidden-tab">
+            <div class="text-center p-8 z-10 w-full max-w-sm">
+                <i class="fa-solid fa-qrcode text-6xl mb-6 text-white opacity-80"></i>
+                <h1 class="text-3xl font-black mb-4 mono text-white" data-i18n="camera_scanner">Scanner</h1>
+                <p class="text-xs font-mono bg-white/10 text-white p-4 rounded border border-white/30 mb-8 backdrop-blur-sm" data-i18n="camera_scan_desc">
+                    Scan the QR code at the Reception!
+                </p>
+
+                <!-- Camera Container -->
+                <div class="w-64 h-64 mx-auto border-4 border-dashed border-[var(--red)] rounded-2xl relative mb-6 overflow-hidden flex items-center justify-center bg-black/50">
+                    
+                    <!-- The actual video feed (hidden until activated) -->
+                    <video id="camera-feed" class="absolute inset-0 w-full h-full object-cover hidden" autoplay playsinline></video>
+
+                    <!-- Scanning animation overlay (hidden until activated) -->
+                    <div id="scan-animation" class="hidden">
+                        <div class="absolute inset-0 bg-red-500/20 animate-pulse"></div>
+                        <div class="absolute top-0 left-0 w-full h-1 bg-white animate-[bounce_2s_infinite]"></div>
+                    </div>
+
+                    <!-- Placeholder icon before camera is opened -->
+                    <i id="camera-placeholder" class="fa-solid fa-camera text-4xl text-gray-500"></i>
+                </div>
+
+                <button id="btn-open-camera" class="btn-terracotta px-6 py-3 font-bold uppercase text-xs" data-i18n="camera_btn">
+                    Open Camera
+                </button>
+            </div>
+        </div>
+
+        <!-- === TAB: MISSIONS === -->
+        <div id="tab-missions" class="flex-1 overflow-y-auto bg-gray-100 hidden-tab">
+            <div class="p-6 pt-12 border-b-4 border-black bg-white">
+                <h1 id="lbl-missions-title" class="mono text-3xl">Missions</h1>
+                <p id="lbl-progress" class="text-[10px] uppercase text-gray-500 font-bold mt-1">Progress: 25%</p>
+                <div class="w-full bg-gray-200 h-2 mt-4 border border-black">
+                    <div class="bg-[var(--red)] h-full" style="width: 25%"></div>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-3">
+                 <div class="card-sketch p-4 flex justify-between items-center">
+                    <div class="flex gap-3 items-center">
+                         <div class="bg-purple-100 text-black border border-black w-8 h-8 rounded flex items-center justify-center"><i class="fa-solid fa-camera"></i></div>
+                         <div>
+                             <h4 id="mission-1-title" class="font-bold text-xs uppercase">Selfie w/ Stranger</h4>
+                             <p class="text-[10px] text-[var(--red)]">+5% Progress</p>
+                         </div>
+                    </div>
+                    <button id="btn-upload" class="btn-terracotta text-[10px] px-3 py-1 rounded-none">UPLOAD</button>
+                 </div>
+            </div>
+        </div>
+
+        <!-- === TAB: TEAM === -->
+        <div id="tab-team" class="flex-1 overflow-hidden bg-gray-100 relative hidden-tab">
+            <div class="absolute inset-0 bg-[#2563EB] flex flex-col items-center justify-center text-white p-8 text-center border-8 border-black">
+                <i class="fa-solid fa-users text-6xl mb-6 text-black opacity-50"></i>
+                <h2 id="lbl-squad" class="text-sm font-mono uppercase tracking-widest mb-2 border-b border-white pb-1">Your Squad</h2>
+                <h1 class="text-6xl font-black mb-8 mono rotate-[-5deg] text-white drop-shadow-[4px_4px_0_#000]">NEON BLUE</h1>
+                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2">Find this color in the crowd.</p>
+            </div>
+        </div>
+
+        <!-- TAB PROFILE -->
+        <div id="tab-profile" class="flex-1 overflow-y-auto bg-[var(--cream)] hidden-tab">
+            <div class="p-6 pt-12">
+                <div class="flex items-center mb-6 min-w-0">
+                    <h1 id="lbl-profile-title"
+                        class="mono w-full min-w-0 leading-none whitespace-nowrap text-[clamp(1.25rem,6vw,1.875rem)] tracking-tight">
+                        Profile
+                    </h1>
+                </div>
+
+
+                <!-- Memory Lane -->
+                <div class="card-sketch p-3 mb-6 rotate-1">
+                    <!-- CHANGED: h-40 is now aspect-video for a perfect 16:9 ratio -->
+                    <div class="relative w-full aspect-video bg-gray-200 border border-black bg-cover bg-center mb-2 grayscale" style="background-image: url('https://images.unsplash.com/photo-1522673607200-1645062cd958?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');">
+                        <!-- overlay inside it -->
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <!-- Lock icon -->
+                            <svg class="w-8 h-8 text-white drop-shadow-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16.5 10.5V7.5A4.5 4.5 0 0012 3 4.5 4.5 0 007.5 7.5v3m9 0h-9m9 0 A2.5 2.5 0 0119 13v5A2.5 2.5 0 0116.5 20.5h-9A2.5 2.5 0 015 18v-5a2.5 2.5 0 012.5-2.5m4 4v2" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p id="txt-memory" class="text-xs font-mono text-center text-gray-400 font-bold uppercase tracking-widest mt-3" data-i18n="profile_memory">carefully selected photo</p>
+                </div>
+
+                <!-- Uber Matches -->
+                <div class="card-sketch p-4 mb-6 bg-white">
+                    <div class="flex items-center justify-between mb-2 border-b border-black pb-2">
+                        <h3 class="font-bold text-[12px] uppercase">
+                            <i class="fa-brands fa-uber"></i> <span id="lbl-uber" data-i18n="uber_title">Potential Uber Matches</span>
+                        </h3>
+                        
+                        <!-- NEW 2D Left-Right Toggle with matching IDs -->
+                        <div id="uber-toggle-wrapper" class="flex items-center gap-2 cursor-pointer">
+                            <span id="uber-toggle-text" class="text-[10px] font-bold uppercase transition-colors duration-300" data-i18n="uber_state_inactive">INACTIVE</span>
+                            <div id="btn-uber-toggle" class="relative w-12 h-6 rounded-full transition-colors duration-300 border-2 border-black flex items-center px-0.5">
+                                <div id="uber-toggle-knob" class="w-4 h-4 bg-white rounded-full border-2 border-black transition-transform duration-300 shadow-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p id="uber-hint" class="text-[11px] font-mono text-gray-400 mb-3" data-i18n="uber_activate_hint">Activate to look for uber buddies</p>
+
+                    <!-- Uber list container -->
+                    <div id="uber-match-list" class="space-y-3">
+                        <!-- JS will populate this -->
+                    </div>
+                </div>
+
+                <!-- UBER DISTRICT MODAL -->
+                <div id="uber-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+                    <div class="bg-white border-2 border-black rounded-lg p-6 max-w-md w-full relative max-h-[80vh] overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                        <!-- Close X Icon -->
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition" data-modal-close>
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="text-center">
+                            <h2 class="text-xl font-bold mb-2 uppercase tracking-tight" data-i18n="uber_modal_title">Uber Buddy</h2>
+                            <p class="text-xs text-gray-600 mb-6 font-mono" data-i18n="uber_modal_desc">Where are you heading after the party?</p>
+                            <!-- District Selection -->
+                            <div class="text-left space-y-4 text-xs font-mono">
+                                <div class="space-y-2">
+                                    <label class="font-bold uppercase text-[10px] text-gray-500 tracking-widest" data-i18n="uber_modal_select">Select your destination district</label>
+                                    <select id="uber-district-select" class="w-full border border-black p-3 rounded-none bg-white focus:outline-none text-sm">
+                                        <option value="" disabled selected data-i18n="uber_modal_placeholder">Choose a destination...</option>
+                                        
+                                        <optgroup label="Hong Kong Island (香港島)">
+                                            <option value="Central">Central (中環)</option>
+                                            <option value="Mid-Levels">Mid-Levels (半山)</option>
+                                            <option value="Wan Chai / Admiralty">Wan Chai / Admiralty (灣仔 / 金鐘)</option>
+                                            <option value="Sheung Wan / Sai Ying Pun">Sheung Wan / Sai Ying Pun (上環 / 西營盤)</option>
+                                            <option value="Kennedy Town / HKU / Shek Tong Tsui">Kennedy Town / HKU (堅尼地城 / 香港大學)</option>
+                                            <option value="Pok Fu Lam / Cyberport">Pok Fu Lam / Cyberport (薄扶林 / 數碼港)</option>
+                                            <option value="Aberdeen">Aberdeen (香港仔)</option>
+                                            <option value="Ap Lei Chau">Ap Lei Chau (鴨脷洲)</option>
+                                            <option value="Wong Chuk Hang / Shouson Hill">Wong Chuk Hang / Shouson Hill (黃竹坑 / 壽臣山)</option>
+                                            <option value="Repulse Bay / Stanley">Repulse Bay / Stanley (淺水灣 / 赤柱)</option>
+                                            <option value="Happy Valley / Wong Nai Chung">Happy Valley / Wong Nai Chung (跑馬地 / 黃泥涌)</option>
+                                            <option value="Tai Hang / Tin Hau / Fortress Hill">Tai Hang / Tin Hau / Fortress Hill (大坑/天后/炮台山)</option>
+                                            <option value="North Point">North Point (北角)</option>
+                                            <option value="Quarry Bay / Tai Koo / Sai Wan Ho">Quarry Bay / Tai Koo (太古 / 西灣河 / 鰂魚涌)</option>
+                                            <option value="Shau Kei Wan / Heng Fa Chuen">Shau Kei Wan / Heng Fa Chuen (筲箕灣 / 杏花村)</option>
+                                            <option value="Chai Wan / Siu Sai Wan">Chai Wan / Siu Sai Wan (柴灣 / 小西灣)</option>
+                                        </optgroup>
+
+                                        <optgroup label="Kowloon (九龍)">
+                                            <option value="TST / Jordan / Yau Ma Tei">TST / Jordan / Yau Ma Tei (尖沙咀 / 佐敦 / 油麻地)</option>
+                                            <option value="Hung Hom / Whampoa">Hung Hom / Whampoa (紅磡 / 黃埔)</option>
+                                            <option value="Ho Man Tin">Ho Man Tin (何文田)</option>
+                                            <option value="To Kwa Wan">To Kwa Wan (土瓜灣)</option>
+                                            <option value="Kowloon City">Kowloon City (九龍城)</option>
+                                            <option value="Wong Tai Sin / Diamond Hill">Wong Tai Sin / Diamond Hill (黃大仙 / 鑽石山)</option>
+                                            <option value="Kowloon Bay / Kwun Tong">Kowloon Bay / Kwun Tong (九龍灣 / 觀塘)</option>
+                                            <option value="Yau Tong / Lam Tin">Yau Tong / Lam Tin (油塘 / 藍田)</option>
+                                            <option value="Mong Kok / Prince Edward">Mong Kok / Prince Edward (旺角 / 太子)</option>
+                                            <option value="Tai Kok Tsui / Olympic">Tai Kok Tsui / Olympic (大角咀 / 奧運)</option>
+                                            <option value="Shek Kip Mei">Shek Kip Mei (石硤尾)</option>
+                                            <option value="Sham Shui Po / Cheung Sha Wan">Sham Shui Po / Cheung Sha Wan (深水埗 / 長沙灣)</option>
+                                            <option value="Mei Foo / Lai Chee Kok">Mei Foo / Lai Chee Kok (美孚 / 荔枝角)</option>
+                                            <option value="Kowloon Tong">Kowloon Tong (九龍塘)</option>
+                                        </optgroup>
+
+                                        <optgroup label="New Territories (East) (新界東)">
+                                            <option value="Fanling / Sheung Shui">Fanling / Sheung Shui (粉嶺 / 上水)</option>
+                                            <option value="Tai Po">Tai Po (大埔)</option>
+                                            <option value="Tai Wai / Sha Tin / Fo Tan">Tai Wai / Sha Tin / Fo Tan (大圍 / 沙田 / 火炭)</option>
+                                            <option value="Ma On Shan / Wu Kai Sha">Ma On Shan / Wu Kai Sha (馬鞍山 / 烏溪沙)</option>
+                                            <option value="Sai Kung">Sai Kung (西貢)</option>
+                                            <option value="Tseung Kwan O / LOHAS">Tseung Kwan O / LOHAS (將軍澳 / 日出康城)</option>
+                                        </optgroup>
+
+                                        <optgroup label="New Territories (West) & Lantau (新界西及大嶼山)">
+                                            <option value="Kwai Chung">Kwai Chung (葵涌)</option>
+                                            <option value="Tsuen Wan">Tsuen Wan (荃灣)</option>
+                                            <option value="Tsing Yi">Tsing Yi (青衣)</option>
+                                            <option value="Tuen Mun">Tuen Mun (屯門)</option>
+                                            <option value="Tin Shui Wai">Tin Shui Wai (天水圍)</option>
+                                            <option value="Yuen Long">Yuen Long (元朗)</option>
+                                            <option value="Kam Tin">Kam Tin (錦田)</option>
+                                            <option value="Lantau Island">Lantau Island (大嶼山)</option>
+                                        </optgroup>
+
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button id="btn-confirm-uber" class="w-full btn-terracotta p-4 uppercase text-sm font-bold mt-6" data-i18n="uber_modal_confirm">
+                                Find Matches
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UBER DISABLE MODAL -->
+                <div id="uber-disable-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+                    <div class="bg-white border-2 border-black rounded-lg p-6 max-w-sm w-full relative shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition" onclick="document.getElementById('uber-disable-modal').classList.add('hidden'); document.getElementById('uber-disable-modal').classList.remove('flex');">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <div class="text-center">
+                            <h2 class="text-xl font-bold mb-2 uppercase tracking-tight text-red-700" data-i18n="uber_disable_modal_title">Stop Matching?</h2>
+                            <p class="text-xs text-gray-600 mb-6 font-mono" data-i18n="uber_disable_modal_description">You will no longer appear on other guests' match lists, but your destination choice will be saved for later.</p>
+                            <div class="flex gap-3">
+                                <button onclick="document.getElementById('uber-disable-modal').classList.add('hidden'); document.getElementById('uber-disable-modal').classList.remove('flex');" class="w-1/2 p-3 uppercase text-sm font-bold border-2 border-black bg-white hover:bg-gray-100 transition" data-i18n="uber_disable_modal_cancel">Cancel</button>
+                                <button id="btn-confirm-uber-disable" class="w-1/2 p-3 uppercase text-sm font-bold bg-[#B32A19] text-white border-2 border-black shadow-[3px_3px_0_0_#000] active:translate-y-[1px] active:translate-x-[1px] active:shadow-[1px_1px_0_0_#000] transition" data-i18n="uber_disable_modal_confirm">Opt Out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Drunk Pick-up Contact -->
+                <div class="bg-red-50 card-sketch p-4 border-red-200">
+                    <h3 class="font-bold flex flex-col items-start gap-1 mb-4 text-[var(--red)] uppercase">
+                        <span id="lbl-drunk-title" class="text-[13px] flex items-center gap-2">
+                            <i class="fa-solid fa-phone"></i> 
+                            <span data-i18n="profile_drunk_title">Drunk Pick-up Contact</span>
+                        </span>
+                        <span class="text-gray-400 text-[12px] normal-case tracking-widest" data-i18n="profile_em">
+                            Don't put your Ex's number here
+                        </span>
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="input-name" placeholder="Contact Name" class="w-full bg-white border border-black p-2 rounded-none text-xs font-mono">
+                        <input type="tel" id="input-phone" placeholder="Phone Number" class="w-full bg-white border border-black p-2 rounded-none text-xs font-mono">
+                        <input type="text" id="input-addr" placeholder="Drop-off Address" class="w-full bg-white border border-black p-2 rounded-none text-xs font-mono">
+                        <p id="drunk-error" class="text-[10px] text-red-700 mt-2 hidden" data-i18n="profile_drunk_error">Please fill in all boxes.</p>
+                        <button id="btn-save" class="w-full bg-black text-white py-2 font-bold text-xs uppercase hover:bg-gray-800 transition">
+                            <span data-i18n="profile_save">Save</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === NAVIGATION === -->
+        <nav class="w-full bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.1)] py-2 flex items-center pb-safe text-[10px] font-bold text-gray-400 z-50 shrink-0">
+            <!-- HOME (PERM) --> 
+            <button onclick="nav('home')" id="nav-home" class="nav-item flex-1 active flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-house text-xl"></i>
+                <span id="nav-lbl-home">Home</span>
+            </button>
+
+            <!-- BEFORE (TEMP) --> 
+            <button onclick="nav('notice')" id="nav-notice" class="nav-item flex-1 flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-bell text-xl"></i>
+                <span id="nav-lbl-notice" data-i18n="nav_notice">Notice</span>
+            </button>
+
+            <button onclick="nav('camera')" id="nav-camera" class="nav-item flex-1 flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-qrcode text-xl"></i>
+                <span id="nav-lbl-camera" data-i18n="nav_scan">Scan</span>
+            </button>
+
+            <!-- AFTER (TEMP) --> 
+            <button onclick="nav('missions')" id="nav-missions" class="nav-item flex-1 hidden flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-list-check text-xl"></i>
+                <span id="nav-lbl-missions">Missions</span>
+            </button>
+
+            <button onclick="nav('team')" id="nav-team" class="nav-item flex-1 hidden flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-users text-xl"></i>
+                <span id="nav-lbl-team">Team</span>
+            </button>
+
+            <!-- PROFILE (PERM) -->
+            <button onclick="nav('profile')" id="nav-profile" class="nav-item flex-1 flex flex-col items-center gap-1 uppercase transition">
+                <i class="fa-solid fa-user text-xl"></i>
+                <span id="nav-lbl-profile">Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        // 1. Initialize Supabase
+        const SUPABASE_URL = 'https://oobjykyxsxhuvspnngbu.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vYmp5a3l4c3hodXZzcG5uZ2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyOTAxMjgsImV4cCI6MjA4NTg2NjEyOH0.g2EYSamn6_dBCifFXfNjojvL9oYVj_uu5v2xhNzuEIo';
+        
+        // Extract the createClient function from the global CDN object
+        const { createClient } = window.supabase;
+
+        // Create the global client (we will just call it supabase now to match your code)
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 2. The Key-Only Login Function (Database Lookup)
+        async function loginWithKey(key) {
+            // Check if the key exists in your new 'profile' table
+            const { data, error } = await supabase
+                .from('profile')
+                .select('*')
+                .eq('uid', key)
+                .single(); // .single() expects exactly one match
+
+            // If no match is found, throw an error to trigger the UI error message
+            if (error || !data) {
+                throw new Error("Invalid key");
+            }
+            
+            // Return the user data to be saved to localStorage
+            return data;
+        }
+    </script>
+
+    <script src="./js/translations.js"></script>
+    <script src="./js/i18n-optin.js"></script>
+    <script src="./js/data.js"></script>
+    <script src="./js/uber-matcher.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/login.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="./js/app.js"></script>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+        <!-- 1. Changed bg-white to bg-[var(--cream)] -->
+        <div class="bg-[var(--cream)] border-2 border-black rounded-lg p-6 max-w-sm w-full relative shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/50 transition" onclick="document.getElementById('settings-modal').classList.add('hidden'); document.getElementById('settings-modal').classList.remove('flex');">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold mb-4 uppercase tracking-tight" data-i18n="settings_title">Settings</h2>
+            
+            <div class="space-y-3">
+                <!-- Language Toggle -->
+                <div class="flex flex-col gap-2 p-3 border border-black bg-white">
+                    <span class="text-[10px] font-bold uppercase text-black tracking-widest">Language / 語言</span>
+                    <!-- 3. Swapping Terracotta/Cream effect with equal portions (flex-1) -->
+                    <div class="flex border-2 border-black w-full" id="settings-lang-switch">
+                        <!-- We use an inline onclick to also update the visual state of these specific buttons -->
+                        <div onclick="setLanguage('en'); document.getElementById('set-btn-en').className='flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--red)] text-[var(--cream)]'; document.getElementById('set-btn-zh').className='flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--cream)] text-[var(--red)]';" 
+                             id="set-btn-en" 
+                             class="flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--red)] text-[var(--cream)]">EN</div>
+                        
+                        <div onclick="setLanguage('zh'); document.getElementById('set-btn-zh').className='flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--red)] text-[var(--cream)]'; document.getElementById('set-btn-en').className='flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--cream)] text-[var(--red)]';" 
+                             id="set-btn-zh" 
+                             class="flex-1 py-2 text-xs cursor-pointer text-center font-bold bg-[var(--cream)] text-[var(--red)]">中文</div>
+                    </div>
+                </div>
+                
+                <!-- Permissions -->
+                <!-- 2. Terracotta text -->
+                <button id="btn-auth-camera" class="w-full flex items-center justify-between p-3 border border-black bg-white hover:bg-gray-50 transition text-left">
+                    <span class="text-xs font-bold uppercase text-black" data-i18n="settings_camera">Enable Camera</span>
+                    <i class="fa-solid fa-camera text-[var(--red)]"></i>
+                </button>
+                <button id="btn-auth-notif" class="w-full flex items-center justify-between p-3 border border-black bg-white hover:bg-gray-50 transition text-left">
+                    <span class="text-xs font-bold uppercase text-black" data-i18n="settings_notif">Enable Notifications</span>
+                    <i class="fa-solid fa-bell text-[var(--red)]"></i>
+                </button>
+                
+                <!-- App Info & Feedback -->
+                <!-- 2. Black text -->
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden'); document.getElementById('settings-modal').classList.remove('flex'); document.getElementById('about-modal').classList.remove('hidden'); document.getElementById('about-modal').classList.add('flex');" class="w-full flex items-center justify-between p-3 border border-black bg-white hover:bg-gray-50 transition text-left mt-4 text-black">
+                    <span class="text-xs font-bold uppercase" data-i18n="settings_about">About</span>
+                    <i class="fa-solid fa-circle-info"></i>
+                </button>
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden'); document.getElementById('settings-modal').classList.remove('flex'); document.getElementById('feedback-modal').classList.remove('hidden'); document.getElementById('feedback-modal').classList.add('flex');" class="w-full flex items-center justify-between p-3 border border-black bg-white hover:bg-gray-50 transition text-left text-black">
+                    <span class="text-xs font-bold uppercase" data-i18n="settings_feedback">Send Feedback</span>
+                    <i class="fa-solid fa-comment-dots"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT MODAL -->
+    <div id="about-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+        <div class="bg-white border-2 border-black rounded-lg p-6 max-w-sm w-full relative text-center">
+            <button class="absolute top-4 right-4" onclick="
+                document.getElementById('about-modal').classList.add('hidden');
+                document.getElementById('about-modal').classList.remove('flex');
+                document.getElementById('settings-modal').classList.remove('hidden');
+                document.getElementById('settings-modal').classList.add('flex');
+            ">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <i class="fa-solid fa-martini-glass-citrus text-4xl text-[var(--red)] mb-3"></i>
+            <h2 class="text-xl font-bold uppercase">Wedding App</h2>
+            <p class="text-xs text-gray-500 font-mono mb-4">Version 1.0.0</p>
+            <p class="text-xs font-mono bg-gray-100 p-3 border border-black" data-i18n="about_credit">Developed with ❤️ for Leo & Cynthia.</p>
+        </div>
+    </div>
+
+    <!-- FEEDBACK MODAL -->
+    <div id="feedback-modal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+        <div class="bg-white border-2 border-black rounded-lg p-6 max-w-sm w-full relative">
+            <button class="absolute top-4 right-4" onclick="
+                document.getElementById('feedback-modal').classList.add('hidden');
+                document.getElementById('feedback-modal').classList.remove('flex');
+                document.getElementById('settings-modal').classList.remove('hidden');
+                document.getElementById('settings-modal').classList.add('flex');
+            ">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold mb-2 uppercase" data-i18n="fb_title">Developer Feedback</h2>
+            <p class="text-xs text-gray-600 mb-4 font-mono" data-i18n="fb_desc">Found a bug? Have a suggestion? Let us know below!</p>
+            <textarea id="fb-text" rows="4" class="w-full border border-black p-2 mb-4 focus:outline-none text-xs font-mono" placeholder="Type your feedback here..." data-i18n-placeholder="fb_ph"></textarea>
+            <button id="btn-submit-feedback" class="w-full btn-terracotta p-4 uppercase text-sm font-bold mt-4">
+                <span data-i18n="settings_feedback_submit">Submit</span>
+            </button>
+        </div>
+    </div>
+</body>
+</html>

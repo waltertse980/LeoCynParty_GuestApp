@@ -1,0 +1,805 @@
+// 3. UI Updates after successful login
+async function populateUIWithGuestData() {
+    if (!guestData) return;
+
+    // Submission of Quick Survey to Database:
+    const btnSubmitSurvey = document.getElementById('btn-submit-survey');
+    if (btnSubmitSurvey) {
+        btnSubmitSurvey.onclick = async function() {
+            const payload = {
+                uid: guestData.uid,
+                allergy: document.getElementById('sv-allergy-cb').checked,
+                allergy_type: document.getElementById('sv-allergy-text').value.trim(),
+                veg: document.getElementById('sv-veg').checked,    // REMOVED -cb
+                halal: document.getElementById('sv-halal').checked, // REMOVED -cb
+                eta: document.getElementById('sv-arrival-select').value,
+                notes: document.getElementById('sv-notes').value.trim()
+            };
+
+            console.log("DB Update: Inserting into Survey table:", payload);
+            // SUPABASE:
+            // Use upsert to allow them to overwrite their survey if they submit again
+            await db.from('survey').upsert(payload, { onConflict: 'uid' });
+            
+            
+            // Close modal
+            document.getElementById('survey-modal').classList.add('hidden');
+            document.getElementById('survey-modal').classList.remove('flex');
+        };
+    }
+    
+    // --- NEW: Dynamic Profile Greeting ---
+    const isZhLang = document.body.classList.contains('lang-zh');
+    const givenName = (guestData.givenname && guestData.givenname !== "NULL") ? guestData.givenname : "";
+    const chiName = (guestData.chinese_name && guestData.chinese_name !== "NULL") ? guestData.chinese_name : givenName; 
+    
+    const profileTitleEl = document.getElementById('lbl-profile-title');
+    if (profileTitleEl) {
+        if (isZhLang) {
+            profileTitleEl.textContent = chiName ? `嗨${chiName}~` : "嗨~";
+        } else {
+            profileTitleEl.textContent = givenName ? `Hello ${givenName} :)` : "Hello :)";
+        }
+    }
+    // -------------------------------------
+
+    // 4) Squad label format: "Squad TOPAZ"
+    const rawSquad = (guestData.squad_name || "Unassigned").toString().toUpperCase();
+
+    document.getElementById("lbl-squad").textContent = "Squad " + rawSquad;
+
+    // keep existing color behavior (uses squad_colour)
+    if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
+        const hexColor = guestData.squad_colour.startsWith("#") ? guestData.squad_colour : ("#" + guestData.squad_colour);
+        const teamTabBg = document.querySelector("#tab-team .absolute.inset-0");
+        if (teamTabBg) teamTabBg.style.backgroundColor = hexColor;
+    }
+
+    // 2) Base Drink Slots from squad_drinkslot
+    let drinkSlots = parseInt(guestData.squad_drinkslot || "0", 10);
+    if (Number.isNaN(drinkSlots)) drinkSlots = 0;
+
+    // 3) +1 penalty if now is 90 mins past checkin_time and no mission completion
+    const penaltyText = document.getElementById("txt-penalty");
+    if (penaltyText) penaltyText.classList.add("hidden"); // Hide by default
+    
+    if (guestData.checkin_time) {
+        const checkinDate = new Date(guestData.checkin_time);
+        const minsPast = (Date.now() - checkinDate.getTime()) / 90000;
+        const taskPt = parseInt(guestData.ind_taskpt || "0", 10);
+        // If 60+ minutes have passed and no points
+        if (minsPast >= 60 && taskPt === 0) {
+            drinkSlots += 1;
+            if (penaltyText) penaltyText.classList.remove("hidden"); // Show penalty phrase
+        }
+    }
+
+    // Write drink slots to BOTH places (Home big number + Profile mini card)
+    // Home: the big number currently has no id, so we add minimal targeting.
+    const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
+    if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
+
+    const profileDrinkNumber = document.querySelector("#tab-profile #lbl-drink-slots-mini")
+        ?.parentElement?.querySelector(".font-bold.text-var--red.text-xl.handwritten");
+    if (profileDrinkNumber) profileDrinkNumber.textContent = String(drinkSlots);
+
+    // Also keep the title text consistent
+    document.getElementById("lbl-drink-slots").textContent = "Drink Slots";
+
+    // --- UBER MATCH LOGIC ---
+    const uberToggleWrapper = document.getElementById('btn-uber-toggle'); 
+    const uberToggleText = document.getElementById('uber-toggle-text'); 
+    const uberToggleKnob = document.getElementById('uber-toggle-knob'); 
+    const uberBox = document.getElementById('uber-match-list');
+    const uberModal = document.getElementById('uber-modal');
+    const confirmUberBtn = document.getElementById('btn-confirm-uber');
+    const districtSelect = document.getElementById('uber-district-select');
+    const uberHint = document.getElementById('uber-hint'); 
+
+    // 1. Safely parse the uber_match state (handles null, undefined, boolean, and strings)
+    const rawUber = guestData.uber_match || guestData.ubermatch || "FALSE"; 
+    const isUber = String(rawUber).toUpperCase() === 'TRUE';
+
+    if (uberToggleWrapper && uberBox && uberToggleText && uberToggleKnob) {
+        
+        const fullClickArea = uberToggleWrapper.parentElement;
+        
+        if (!isUber) {
+            // STATE: INACTIVE
+            const isZh = document.body.classList.contains('lang-zh');
+            uberToggleText.textContent = isZh ? "未登記" : "INACTIVE";
+            uberToggleText.style.color = "#B32A19"; 
+            uberToggleWrapper.style.backgroundColor = "rgba(179, 42, 25, 0.5)"; 
+            uberToggleKnob.style.transform = "translateX(0px)";
+            uberBox.innerHTML = ``; 
+            
+            if (uberHint) uberHint.classList.remove('hidden'); 
+
+            const lastDistrict = guestData.uber_district || guestData.uberdistrict;
+            if (lastDistrict && lastDistrict !== "NULL" && lastDistrict.trim() !== "") {
+                districtSelect.value = lastDistrict;
+            } else {
+                districtSelect.selectedIndex = 0;
+            }
+
+            // Click opens the District selection modal to opt-in
+            fullClickArea.onclick = function() {
+                if(uberModal) {
+                    uberModal.classList.remove('hidden');
+                    uberModal.classList.add('flex');
+                }
+            };
+        } else {
+            // STATE: ACTIVE 
+            const isZh = document.body.classList.contains('lang-zh');
+            uberToggleText.textContent = isZh ? "已登記" : "ACTIVE";
+            uberToggleText.style.color = "#16a34a"; 
+            uberToggleWrapper.style.backgroundColor = "rgba(22, 163, 74, 0.5)"; 
+            uberToggleKnob.style.transform = "translateX(24px)";
+            
+            if (uberHint) uberHint.classList.add('hidden'); 
+
+            // Click opens the opt-out modal
+            fullClickArea.onclick = function() {
+                const disableModal = document.getElementById('uber-disable-modal');
+                if (disableModal) {
+                    disableModal.classList.remove('hidden');
+                    disableModal.classList.add('flex');
+                }
+            };
+
+            const myDistrictRaw = guestData.uber_district || guestData.uberdistrict || "NULL";
+            const myDistrict = myDistrictRaw.trim();
+
+            if (myDistrict === "NULL" || myDistrict === "") {
+                uberBox.innerHTML = `<div class="text-[10px] font-bold text-gray-500 uppercase mb-2">where will you drop off?</div>`;
+            } else {
+                const isZhMatch = document.body.classList.contains('lang-zh');
+                const headingPrefix = isZhMatch ? "目的地: " : "Heading to: ";
+                const displayDist = getLocalizedDistrictName(myDistrict, isZhMatch);
+
+                // Show loading state
+                uberBox.innerHTML = `
+                    <div class="text-[10px] font-bold text-green-700 uppercase mb-2">Heading to ${myDistrict}</div>
+                    <div class="text-[10px] font-mono text-gray-400 mt-2">Loading latest matches...</div>
+                `;
+
+                // Fetch matches asynchronously
+                (async () => {
+                    const { data: allUsers } = await db.from('status').select('*');
+                    const { data: allProfiles } = await db.from('profile').select('*');
+
+                    let exactMatches = [];
+                    let routeMatches = [];
+
+                    if (typeof window.findUberMatches === 'function' && allUsers && allProfiles) {
+                        const matchResults = window.findUberMatches(myDistrict, allUsers, guestData.uid);
+                        exactMatches = matchResults.exactMatches;
+                        routeMatches = matchResults.routeMatches;
+                    }
+
+                    let htmlContent = `<div class="text-[10px] font-bold text-green-700 uppercase mb-2">${headingPrefix}${displayDist}</div>`;
+                    
+                    if (exactMatches.length === 0 && routeMatches.length === 0) {
+                        const emptyText = isZhMatch ? "暫時未有順路嘅泥鯭...主動出擊搵人夾Uber啦!" : "no potential Uber buddies at the moment...";
+                        htmlContent += `<div class="text-[10px] font-mono text-gray-400 mt-2" data-i18n="uber_match_empty">${emptyText}</div>`;
+                    } else {
+                        const renderUserRow = (match) => {
+                            let matchName = match.uid;
+                            let bgColor = "#f97316"; 
+                            
+                            const profile = allProfiles.find(p => p.uid === match.uid);
+                            if (profile) {
+                                if (profile.givenname) matchName = profile.givenname;
+                                if (profile.squad_colour && profile.squad_colour.trim() !== "NULL") {
+                                    const rawColor = profile.squad_colour.trim();
+                                    bgColor = rawColor.startsWith("#") ? rawColor : `#${rawColor}`;
+                                }
+                            }
+                            
+                            const initial = matchName.charAt(0).toUpperCase();
+                            return `
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center font-bold text-white text-xs shadow-sm" style="background-color: ${bgColor};">${initial}</div>
+                                    <div class="font-bold text-xs">${matchName}</div>
+                                </div>
+                            `;
+                        };
+
+                        if (exactMatches.length > 0) {
+                            const exactText = isZhMatch ? "目的地同您相近:" : "Destinations close to yours:";
+                            htmlContent += `<div class="text-[9px] font-mono text-gray-500 mt-3 mb-1" data-i18n="uber_match_exact">${exactText}</div>`;
+                            exactMatches.forEach(match => { htmlContent += renderUserRow(match); });
+                        }
+
+                        if (routeMatches.length > 0) {
+                            const routeTitleText = isZhMatch ? "順路嘅潛在泥鯭友:" : "Potential co-riders sharing the same route:";
+                            htmlContent += `<div class="text-[9px] font-mono text-gray-500 mt-3 mb-1">${routeTitleText}</div>`;
+                            routeMatches.forEach(match => { htmlContent += renderUserRow(match); });
+                        }
+                    }
+                    uberBox.innerHTML = htmlContent;
+                })();
+            }
+        }
+    }
+
+    // Move modal confirmation listeners OUTSIDE of the toggle logic so they always exist
+    if (confirmUberBtn && !confirmUberBtn.dataset.listenerAttached) {
+        confirmUberBtn.dataset.listenerAttached = "true"; // Prevent duplicate listeners
+        confirmUberBtn.addEventListener('click', async function() {
+            const selected = districtSelect.value;
+            const errorMsg = document.getElementById('uber-error-msg');
+            
+            if (!selected) {
+                if(errorMsg) errorMsg.classList.remove('hidden');
+                return;
+            }
+            if(errorMsg) errorMsg.classList.add('hidden');
+
+            // Update local state
+            guestData.uber_match = 'TRUE';
+            guestData.uber_district = selected;
+            
+            // Supabase Update
+            console.log(`DB Update: Writing uber_match=TRUE, uber_district=${selected}`);
+            await db.from('status').update({ uber_match: 'TRUE', uber_district: selected }).eq('uid', guestData.uid);
+            
+            if (uberModal) {
+                uberModal.classList.add('hidden');
+                uberModal.classList.remove('flex');
+            }
+            
+            // Redraw UI
+            populateUIWithGuestData();
+        });
+    }
+
+    const disableConfirmBtn = document.getElementById('btn-confirm-uber-disable');
+    if (disableConfirmBtn && !disableConfirmBtn.dataset.listenerAttached) {
+        disableConfirmBtn.dataset.listenerAttached = "true";
+        disableConfirmBtn.addEventListener('click', async function() {
+            guestData.uber_match = 'FALSE';
+            
+            console.log("DB Update: Writing uber_match=FALSE.");
+            await db.from('status').update({ uber_match: 'FALSE' }).eq('uid', guestData.uid);
+            
+            const disableModal = document.getElementById('uber-disable-modal');
+            if (disableModal) {
+                disableModal.classList.add('hidden');
+                disableModal.classList.remove('flex');
+            }
+            populateUIWithGuestData();
+        });
+    }
+
+    // Saving the Drunk Pick-up Form:
+    const btnSaveDrunk = document.getElementById('btn-save');
+    if (btnSaveDrunk) {
+        btnSaveDrunk.onclick = async function() {
+            const name = document.getElementById('input-name').value.trim();
+            const phone = document.getElementById('input-phone').value.trim();
+            const addr = document.getElementById('input-addr').value.trim();
+            const errorEl = document.getElementById('drunk-error');
+
+            if (!name || !phone || !addr) {
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            // SUPABASE:
+            await db.from('status').update({
+                em_name: name,
+                em_number: phone,
+                em_address: addr
+            }).eq('uid', guestData.uid);
+            
+            // GUI Success Feedback
+            btnSaveDrunk.textContent = "SAVED!";
+            
+            // Remove old message if user clicks multiple times
+            const oldMsg = document.getElementById('drunk-success-msg');
+            if (oldMsg) oldMsg.remove();
+            
+            // Create grey text message
+            const successMsg = document.createElement('div');
+            successMsg.id = 'drunk-success-msg';
+            successMsg.className = 'text-xs text-gray-500 mt-2 text-center font-semibold';
+            successMsg.textContent = 'Contact saved successfully.';
+            
+            // Insert right after the save button
+            btnSaveDrunk.parentNode.insertBefore(successMsg, btnSaveDrunk.nextSibling);
+
+            setTimeout(() => {
+                btnSaveDrunk.textContent = "SAVE";
+                if (successMsg) successMsg.remove();
+            }, 3000);
+        };
+    }
+
+
+
+
+    // ADD THESE TWO LINES AT THE VERY END
+    updateStatusCard(); 
+    setRandomTip();
+    
+    // Initialize Notice logic and check admin rights
+    setupNoticeAdmin();
+    loadNotices();
+}
+
+function updateStatusCard() {
+    const now = new Date();
+    const eventStart = new Date("2026-03-28T18:30:00");
+    const textEl = document.getElementById("status-text");
+    const subEl  = document.getElementById("status-subtext");
+    const iconWrap = document.getElementById("status-icon");
+    const icon   = document.getElementById("status-icon-icon");
+
+    // --- NEW: Stop i18n from overriding our dynamic status text! ---
+    if (textEl) textEl.removeAttribute("data-i18n");
+    if (subEl) subEl.removeAttribute("data-i18n");
+
+    // Detect language state
+    const isZh = document.body.classList.contains('lang-zh');
+
+    // 1. Correctly detect if checked in from CSV data
+    const rawCheckin = (guestData && guestData.checkin_time) ? String(guestData.checkin_time).trim() : "";
+    const isCheckedIn = rawCheckin !== "" && rawCheckin.toUpperCase() !== "NULL";
+
+    if (isCheckedIn) {
+        // STATE: Checked In
+        textEl.textContent = isZh ? "歡迎，你已經成功報到！" : "Welcome to the party!";
+        subEl.textContent = isZh ? "盡情玩啦！" : "Enjoy the chaos...";
+        iconWrap.className = "w-10 h-10 bg-green-100 rounded-full border-2 border-black flex items-center justify-center";
+        icon.className = "fa-solid fa-check text-green-700";
+    } else if (now < eventStart) {
+        // STATE: Before event
+        textEl.textContent = isZh ? "敬請期待..." : "Coming soon...";
+        subEl.textContent = isZh ? "2026年3月28日 18:30 恭候" : "\"Doors open at 18:30, 28 Mar 2026.\"";
+        iconWrap.className = "w-10 h-10 bg-yellow-100 rounded-full border-2 border-black flex items-center justify-center";
+        icon.className = "fa-solid fa-clock text-yellow-700";
+    } else {
+        // STATE: Event started but not checked in
+        textEl.textContent = isZh ? "快啲嚟啦!!! \\ w /" : "Hurry up!!! \\ w /";
+        subEl.textContent = isZh ? "去接待處報到啦！" : "Scan your QR code to check in.";
+        iconWrap.className = "w-10 h-10 bg-red-100 rounded-full border-2 border-black flex items-center justify-center";
+        icon.className = "fa-solid fa-person-running text-red-700";
+    }
+}
+
+function updateHomeTabLayout(isCheckedIn) {
+    const preHeader = document.getElementById("home-precheckin-header");
+    const transportBtn = document.getElementById("btn-transport");
+    const surveyBtn = document.getElementById("btn-survey");
+    
+    const drinkCard = document.getElementById("home-drink-card");
+    const wifiCard = document.getElementById("home-wifi-card");
+    const tipsCard = document.getElementById("home-tips-card");
+
+    if (isCheckedIn) {
+        // Hide "Before" elements
+        if (preHeader) preHeader.classList.add("hidden");
+        if (transportBtn) transportBtn.classList.add("hidden");
+        if (surveyBtn) surveyBtn.classList.add("hidden");
+        
+        // Show "After" elements
+        if (drinkCard) drinkCard.classList.remove("hidden");
+        if (wifiCard) wifiCard.classList.remove("hidden");
+        if (tipsCard) tipsCard.classList.remove("hidden");
+        
+        // Show correct Nav Tabs
+        toggleNavTabs(true);
+    } else {
+        // Show "Before" elements
+        if (preHeader) preHeader.classList.remove("hidden");
+        if (transportBtn) transportBtn.classList.remove("hidden");
+        if (surveyBtn) surveyBtn.classList.remove("hidden");
+        
+        // Hide "After" elements
+        if (drinkCard) drinkCard.classList.add("hidden");
+        if (wifiCard) wifiCard.classList.add("hidden");
+        if (tipsCard) tipsCard.classList.add("hidden");
+        
+        // Show correct Nav Tabs
+        toggleNavTabs(false);
+    }
+}
+
+function toggleNavTabs(isPostCheckin) {
+    const navMissions = document.getElementById("nav-missions");
+    const navTeam = document.getElementById("nav-team");
+    const navNotice = document.getElementById("nav-notice");
+    const navCamera = document.getElementById("nav-camera");
+
+    if (isPostCheckin) {
+        if (navMissions) navMissions.classList.remove("hidden");
+        if (navTeam) navTeam.classList.remove("hidden");
+        if (navNotice) navNotice.classList.add("hidden");
+        if (navCamera) navCamera.classList.add("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-notice' || currentActive.id === 'nav-camera')) {
+            nav('home');
+        }                
+    } else {
+        if (navMissions) navMissions.classList.add("hidden");
+        if (navTeam) navTeam.classList.add("hidden");
+        if (navNotice) navNotice.classList.remove("hidden");
+        if (navCamera) navCamera.classList.remove("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-missions' || currentActive.id === 'nav-team')) {
+            nav('home');
+        }                
+    }
+}
+
+function nav(tabId) {
+    document.querySelectorAll('.iphone-container > div[id^="tab-"]').forEach(el => el.classList.add('hidden-tab'));
+    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('nav-' + tabId).classList.add('active');
+}
+
+const targetDate = new Date(2026, 2, 28, 18, 30, 0); 
+
+function updateCountdown() {
+    const now = new Date();
+    let diff = targetDate.getTime() - now.getTime();
+    if (diff <= 0) {
+        document.getElementById('cd-days').textContent = '00';
+        document.getElementById('cd-hours').textContent = '00';
+        document.getElementById('cd-mins').textContent = '00';
+        return;
+    }
+    const msInMinute = 60 * 1000, msInHour = 60 * msInMinute, msInDay = 24 * msInHour;
+    const days = Math.floor(diff / msInDay); diff -= days * msInDay;
+    const hours = Math.floor(diff / msInHour); diff -= hours * msInHour;
+    const mins = Math.floor(diff / msInMinute);
+    document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+    document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+}
+
+const PARTY_TIPS = [
+    "Say hi to someone from a different group—instant new friend.",
+    "Drink water between rounds. Your future self will thank you.",
+    "Use Uber matching if you’re heading the same way.",
+    "Set your Drunk Pick-up Contact before you need it."
+];
+
+function setRandomTip() {
+    const el = document.getElementById("txt-party-tip");
+    if (!el) return;
+    el.textContent = PARTY_TIPS[Math.floor(Math.random() * PARTY_TIPS.length)];
+}
+
+function toggleAllergyInput() {
+    const cb = document.getElementById('sv-allergy-cb');
+    const input = document.getElementById('sv-allergy-text');
+    if (cb.checked) {
+        input.classList.remove('hidden');
+        input.focus();
+    } else {
+        input.classList.add('hidden');
+        input.value = ""; // Clear if unchecked
+    }
+}
+
+function generateArrivalOptions() {
+    const select = document.getElementById('sv-arrival-select');
+    if (!select) return;
+    
+    select.innerHTML = ""; 
+    
+    let currentHour = 18;
+    let currentMin = 30;
+
+    // Loop stops once we exceed 20:00
+    while (currentHour < 20 || (currentHour === 20 && currentMin === 0)) {
+        const displayHour = currentHour.toString().padStart(2, '0');
+        const displayMin = currentMin.toString().padStart(2, '0');
+        const timeStr = `${displayHour}:${displayMin}`;
+        
+        const opt = document.createElement('option');
+        opt.value = timeStr;
+        opt.textContent = timeStr;
+        select.appendChild(opt);
+
+        // Stop exactly at 20:00
+        if (currentHour === 20 && currentMin === 0) break;
+
+        // Increment by 15 mins
+        currentMin += 15;
+        if (currentMin >= 60) {
+            currentHour += 1;
+            currentMin = 0;
+        }
+    }
+}
+
+
+// --- NOTICE BOARD LOGIC ---
+async function loadNotices() {
+    const listEl = document.getElementById('notice-list');
+    if(!listEl) return;
+
+    // Fetch from Supabase 'notices' table
+    const { data: notices, error } = await db.from('notice').select('*');
+    
+    if (error) {
+        console.error("Error loading notices:", error);
+        listEl.innerHTML = '<div class="text-center text-xs text-red-500 font-mono mt-4">Failed to load notices</div>';
+        return;
+    }
+
+    const now = new Date();
+            
+            // Helper function to parse "YYYYMMDDhhmmss" into a real JS Date object
+            const parseCustomDate = (str) => {
+                if (!str || str.length < 14) return new Date(0);
+                const YYYY = parseInt(str.substring(0, 4), 10);
+                const MM = parseInt(str.substring(4, 6), 10) - 1; // JS months are 0-11
+                const DD = parseInt(str.substring(6, 8), 10);
+                const hh = parseInt(str.substring(8, 10), 10);
+                const mm = parseInt(str.substring(10, 12), 10);
+                const ss = parseInt(str.substring(12, 14), 10);
+                return new Date(YYYY, MM, DD, hh, mm, ss);
+            };
+
+            // 1. Filter: Only show if current time is >= notice datetime
+            let validNotices = notices.filter(n => {
+                if (!n.datetime) return false;
+                const nDate = parseCustomDate(String(n.datetime));
+                return now >= nDate;
+            });
+
+            // 2. Sort: Most recent on top
+            validNotices.sort((a, b) => parseCustomDate(String(b.datetime)) - parseCustomDate(String(a.datetime)));
+
+            if (validNotices.length === 0) {
+                listEl.innerHTML = `<div class="text-center text-xs text-gray-500 font-mono mt-4">No updates at the moment...</div>`;
+                return;
+            }
+
+            // 3. Render Minimal Cards for Pop-up Logic
+            const storageKey = `readNotices_${guestData ? guestData.uid : 'guest'}`;
+            let readNotices = [];
+            try {
+                readNotices = JSON.parse(localStorage.getItem(storageKey)) || [];
+            } catch(e) {}
+
+            listEl.innerHTML = validNotices.map(n => {
+                const noticeId = String(n.datetime).trim();
+                const nDate = parseCustomDate(noticeId);
+                const dateStr = nDate.toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+                
+                const isNew = !readNotices.includes(noticeId);
+                
+                // Encode quotes safely so they don't break the HTML data attributes
+                const safeSubject = String(n.subject).replace(/"/g, '&quot;');
+                const safeContent = String(n.content).replace(/"/g, '&quot;');
+
+                // Determine Language state for the "NEW" badge (This MUST be OUTSIDE the return block!)
+                const isZh = document.body.classList.contains('lang-zh');
+                const newText = isZh ? "未讀" : "NEW";
+                
+                return `
+                <div class="card-sketch p-5 bg-white relative cursor-pointer group notice-card active:scale-[0.98] transition-transform" 
+                     data-id="${noticeId}" 
+                     data-subject="${safeSubject}" 
+                     data-content="${safeContent}" 
+                     data-date="${dateStr}">
+                     
+                    <div class="notice-new-badge absolute -top-3 -right-3 bg-[var(--red)] text-white text-xs font-bold px-2 py-1 rotate-3 border-2 border-black ${isNew ? '' : 'hidden'}">${newText}</div>
+                    
+                    <!-- Header Only Preview -->
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-sm uppercase group-active:text-[var(--red)] transition-colors pr-4 truncate">${n.subject}</h3>
+                        <div class="text-[10px] text-gray-400 whitespace-nowrap ml-2">${dateStr}</div>
+                    </div>
+                </div>
+                `;
+            }).join("");
+
+            // 4. Attach Click Listeners to Open the Reader Modal
+            const cards = listEl.querySelectorAll('.notice-card');
+            cards.forEach(card => {
+                card.onclick = function() {
+                    const nId = this.getAttribute('data-id');
+                    const nSubject = this.getAttribute('data-subject');
+                    const nContent = this.getAttribute('data-content');
+                    const nDate = this.getAttribute('data-date');
+                    const badge = this.querySelector('.notice-new-badge');
+
+                    // Populate the modal fields
+                    document.getElementById('nr-subject').textContent = nSubject;
+                    document.getElementById('nr-datetime').textContent = nDate;
+                    document.getElementById('nr-content').textContent = nContent;
+
+                    // Open the modal
+                    const readModal = document.getElementById('notice-read-modal');
+                    if (readModal) {
+                        readModal.classList.remove('hidden');
+                        readModal.classList.add('flex');
+                    }
+                    
+                    // Mark as read in local storage
+                    if (!readNotices.includes(nId)) {
+                        readNotices.push(nId);
+                        localStorage.setItem(storageKey, JSON.stringify(readNotices));
+                        
+                        // Hide the NEW badge instantly on the card
+                        if (badge) badge.classList.add('hidden');
+                    }
+                };
+            });
+}
+
+function setupNoticeAdmin() {
+    const adminBtn = document.getElementById("btn-admin-add-notice");
+    const addModal = document.getElementById("notice-add-modal");
+    const confirmModal = document.getElementById("notice-confirm-modal");
+    const nowCb = document.getElementById("nt-now-cb");
+    const dtGroup = document.getElementById("nt-datetime-group");
+    const ddSelect = document.getElementById("nt-dd");
+    const hhSelect = document.getElementById("nt-hh");
+    const mmSelect = document.getElementById("nt-mm");
+
+    // 1. Setup Admin UI Permissions
+    const authorizedAdmins = ["admin_001", "admin_002", "admin_003"];
+    if (adminBtn && typeof guestData !== "undefined" && guestData && authorizedAdmins.includes(guestData.uid)) {
+        adminBtn.classList.remove("hidden");
+    }
+
+    // 2. Populate Dropdowns dynamically
+    if (ddSelect && ddSelect.options.length === 0) {
+        for(let i=1; i<=31; i++) ddSelect.add(new Option(i.toString().padStart(2, '0'), i.toString().padStart(2, '0')));
+        for(let i=0; i<=23; i++) hhSelect.add(new Option(i.toString().padStart(2, '0'), i.toString().padStart(2, '0')));
+        for(let i=0; i<=59; i++) mmSelect.add(new Option(i.toString().padStart(2, '0'), i.toString().padStart(2, '0')));
+    }
+
+    if (!adminBtn) return; // Stop if elements missing
+
+    // 3. Interactions
+    adminBtn.onclick = () => {
+        if(addModal) {
+            addModal.classList.remove("hidden");
+            addModal.classList.add("flex");
+        }
+    };
+
+    if (nowCb) {
+        nowCb.onchange = (e) => {
+            const isNow = e.target.checked;
+            [ddSelect, hhSelect, mmSelect].forEach(sel => {
+                if(sel) {
+                    sel.disabled = isNow;
+                    isNow ? sel.classList.add("bg-gray-100") : sel.classList.remove("bg-gray-100");
+                }
+            });
+            if (dtGroup) isNow ? dtGroup.classList.add("opacity-50") : dtGroup.classList.remove("opacity-50");
+        };
+    }
+
+    let pendingNoticeData = null;
+
+    // SAFEGUARD: Only attach if button exists
+    const btnSubmitNotice = document.getElementById("btn-submit-notice");
+    if (btnSubmitNotice) {
+        btnSubmitNotice.onclick = () => {
+            const subjEl = document.getElementById("nt-subject");
+            const contEl = document.getElementById("nt-content");
+            const subject = subjEl ? subjEl.value.trim() : "";
+            const content = contEl ? contEl.value.trim() : "";
+            
+            let finalDateStr;
+            if (nowCb && nowCb.checked) {
+                const n = new Date();
+                const p = num => String(num).padStart(2, '0');
+                // Format strictly as YYYYMMDDhhmmss
+                finalDateStr = `${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}${p(n.getHours())}${p(n.getMinutes())}00`;
+            } else if (ddSelect && hhSelect && mmSelect) {
+                // Hardcode 202603 for your event, and pull DD/HH/MM from dropdowns
+                finalDateStr = `202603${ddSelect.value}${hhSelect.value}${mmSelect.value}00`;
+            }
+
+
+            pendingNoticeData = { subject, content, datetime: finalDateStr };
+            
+            if(addModal) {
+                addModal.classList.add("hidden");
+                addModal.classList.remove("flex");
+            }
+            if(confirmModal) {
+                confirmModal.classList.remove("hidden");
+                confirmModal.classList.add("flex");
+            }
+        };
+    }
+
+    // SAFEGUARD: Only attach if button exists
+    const btnFinalConfirm = document.getElementById("btn-final-confirm-notice");
+    if (btnFinalConfirm) {
+        btnFinalConfirm.onclick = async () => {
+            console.log("DB Update: Writing to notice", pendingNoticeData);
+            await db.from('notice').insert([ pendingNoticeData ]);
+
+            const subjEl = document.getElementById("nt-subject");
+            const contEl = document.getElementById("nt-content");
+            if (subjEl) subjEl.value = "";
+            if (contEl) contEl.value = "";
+            
+            if(nowCb) {
+                nowCb.checked = true;
+                nowCb.dispatchEvent(new Event("change"));
+            }
+
+            if(confirmModal) {
+                confirmModal.classList.add("hidden");
+                confirmModal.classList.remove("flex");
+            }
+            
+            loadNotices(); // Refresh view
+        };
+    }
+}
+
+// --- SETTINGS & PERMISSIONS LOGIC ---
+
+// Safe Camera Authorization Request
+const camBtn = document.getElementById('btn-auth-camera');
+if (camBtn) {
+    camBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            alert("Camera access granted successfully!");
+            stream.getTracks().forEach(track => track.stop()); 
+        } catch (err) {
+            alert("Camera access denied or unavailable. Check your device settings.");
+        }
+    });
+}
+
+// Safe Notification Authorization Request
+const notifBtn = document.getElementById('btn-auth-notif');
+if (notifBtn) {
+    notifBtn.addEventListener('click', async () => {
+        if (!("Notification" in window)) {
+            alert("This browser does not support push notifications.");
+            return;
+        }
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                alert("Notifications enabled successfully!");
+            } else {
+                alert("Notification access denied.");
+            }
+        } catch (err) {
+            console.error("Error requesting notification permission:", err);
+        }
+    });
+}
+
+// Helper to extract localized district name
+function getLocalizedDistrictName(districtVal, isZh) {
+    const opt = document.querySelector(`#uber-district-select option[value="${districtVal}"]`);
+    if (!opt) return districtVal;
+    
+    const match = opt.textContent.match(/^(.*?)\s*\((.*?)\)$/);
+    if (match) {
+        const p1 = match[1].trim();
+        const p2 = match[2].trim();
+        const p1HasZh = /[\u4e00-\u9fa5]/.test(p1);
+        
+        if (isZh) return p1HasZh ? p1 : p2; 
+        return p1HasZh ? p2 : p1;           
+    }
+    return districtVal;
+}
+
+nav('home');
