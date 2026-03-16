@@ -30,9 +30,10 @@ async function checkExistingLogin() {
     } catch (e) { console.error(e); }
 
     if (storedAuthKey) {
+        // SAFEGUARD: Clean the key again just in case
+        const cleanKey = storedAuthKey.trim().toUpperCase();
         // Re-verify against CSV to load guestData
-        const userId = await deriveUserIdFromKey(storedAuthKey);
-        if (userId) {
+        const userId = await deriveUserIdFromKey(cleanKey);        if (userId) {
             setLoggedIn(userId, storedAuthKey);
             updateStatusCard();
             return; // Stay on the app-container
@@ -47,7 +48,10 @@ async function attemptLogin() {
     console.log("Login button clicked!");
     const input = document.getElementById('auth-key-input');
     const errorEl = document.getElementById('auth-error');
-    const key = input.value;
+    
+    // SAFEGUARD: Remove hidden iPhone spaces and force UPPERCASE
+    const key = input.value.trim().toUpperCase();
+
     console.log("Trying to login with key:", key);
     try {
         const userId = await deriveUserIdFromKey(key);
