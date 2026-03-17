@@ -44,15 +44,56 @@ async function populateUIWithGuestData() {
     // -------------------------------------
 
     // 4) Squad label format: "Squad TOPAZ"
-    const rawSquad = (guestData.squad_name || "Unassigned").toString().toUpperCase();
+    // 改良版Team Tab顏色及名稱設定
+    function updateTeamTabUI() {
+        if (!guestData) return false; // 如無數據則退出
 
-    document.getElementById("lbl-squad").textContent = "Squad " + rawSquad;
+        // 1. 更新Squad名稱
+        const rawSquad = (guestData.squad_name || "Unassigned").toString().trim();
+        const displaySquad = rawSquad === "NULL" ? "UNASSIGNED" : rawSquad.toUpperCase();
+        const squadLabel = document.getElementById("lbl-squad");
+        
+        if (squadLabel) {
+            squadLabel.textContent = "Squad " + displaySquad;
+            console.log(`Set squad name to: ${displaySquad}`);
+        } else {
+            console.error("Squad label element not found");
+        }
 
-    // keep existing color behavior (uses squad_colour)
-    if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
-        const hexColor = guestData.squad_colour.startsWith("#") ? guestData.squad_colour : ("#" + guestData.squad_colour);
+        // 2. 更新背景顏色
         const teamTabBg = document.querySelector("#tab-team .absolute.inset-0");
-        if (teamTabBg) teamTabBg.style.backgroundColor = hexColor;
+        if (!teamTabBg) {
+            console.error("Team tab background element not found");
+            return false;
+        }
+
+        let squadColor = guestData.squad_colour || "";
+        squadColor = squadColor.trim();
+        
+        // 檢查顏色值是否有效
+        if (squadColor && squadColor !== "NULL") {
+            try {
+                // 確保顏色格式正確（加上#前綴如果沒有）
+                const hexColor = squadColor.startsWith("#") ? squadColor : ("#" + squadColor);
+                // 簡單驗證十六進制顏色格式
+                if (/^#[0-9A-F]{3,6}$/i.test(hexColor)) {
+                    teamTabBg.style.backgroundColor = hexColor;
+                    console.log(`Applied team color: ${hexColor}`);
+                } else {
+                    console.warn(`Invalid color format: ${squadColor}, using default`);
+                    teamTabBg.style.backgroundColor = "#888888"; // 默認灰色
+                }
+            } catch (err) {
+                console.error("Error setting team color:", err);
+                teamTabBg.style.backgroundColor = "#888888"; // 出錯時使用默認灰色
+            }
+        } else {
+            // 無顏色或顏色為"NULL"時使用默認值
+            teamTabBg.style.backgroundColor = "#888888";
+            console.log("No valid squad color, using default");
+        }
+        
+        return true;
     }
 
     // 2) Base Drink Slots from squad_drinkslot

@@ -1,4 +1,34 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // --- SPLASH SCREEN LOGIC ---
+    const splashScreen = document.getElementById('splash-screen');
+    const splashImage = document.getElementById('splash-image');
+
+    // Check if we already played the splash screen this session
+    if (sessionStorage.getItem('splashPlayed')) {
+        // Already played: hide it instantly so they can use the app
+        if (splashScreen) splashScreen.style.display = 'none';
+    } else {
+        // First time: Play the animation
+        if (splashScreen && splashImage) {
+            // 1. Fade IN the image (takes 2 seconds because of Tailwind CSS duration-[2000ms])
+            setTimeout(() => {
+                splashImage.style.opacity = '1';
+            }, 100); // Tiny delay to ensure browser paints the initial state
+
+            // 2. Wait 2 seconds (for fade in), then hold for 1 second, then Fade OUT everything
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+            }, 3000); 
+
+            // 3. Wait for the 2-second fade out to finish, then delete it to reveal the app
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+                // Mark it as played for this session
+                sessionStorage.setItem('splashPlayed', 'true');
+            }, 5000); 
+        }
+    }
+
     // Initial Language Detect
     const userLang = (navigator.language || navigator.userLanguage).toLowerCase();
     if (userLang.includes('en')) setLanguage('en');
