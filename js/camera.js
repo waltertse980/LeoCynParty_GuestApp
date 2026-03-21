@@ -110,29 +110,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUid = guestData.uid;
             const now = new Date().toISOString();
             
-            // Clean the QR data just in case there are invisible spaces
+            // Clean the QR data
             const cleanQR = qrData.trim(); 
             console.log('DB Update: Check-in! Scanned Station = ' + cleanQR);
 
-            // 6. Update Mobile App's own status table
+            // 6. Update Mobile App's own status table (FIXED COLUMN NAMES)
             const { error: statusErr } = await db.from('status')
                 .update({ checkin_time: now, station_qr: cleanQR })
                 .eq('uid', currentUid);
 
             if (statusErr) throw new Error("Status table error: " + statusErr.message);
 
-            // 7. WAKE UP THE IPAD (reception table)
-            // Upsert will gracefully create the row if it doesn't exist, or update it if it does.
+            // 7. WAKE UP THE IPAD (reception table) (FIXED COLUMN NAME)
             const { error: receptionErr } = await db.from('reception')
                 .upsert({ 
-                    stationqr: cleanQR, 
+                    station_qr: cleanQR, 
                     uid: currentUid, 
                     time: now 
                 });
 
             if (receptionErr) throw new Error("Reception table error: " + receptionErr.message);
 
-            // 8. Update local guest memory
+            // 8. Update local guest memory (FIXED COLUMN NAMES)
             guestData.checkin_time = now;
             guestData.station_qr = cleanQR;
             
@@ -142,11 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Check-in Successful!");
 
         } catch (err) {
-            // THIS IS THE CRITICAL LINE: It will tell us EXACTLY what Supabase rejected
             console.error('Scan handling crashed:', err);
             alert('Could not sync scan with database. Check console for details.');
         }
-
     }
-
 });
