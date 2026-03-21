@@ -396,12 +396,11 @@
 
 
                 <!-- Memory Lane -->
-                <div class="card-sketch p-3 mb-6 rotate-1">
-                    <!-- CHANGED: h-40 is now aspect-video for a perfect 16:9 ratio -->
-                    <div class="relative w-full aspect-video bg-gray-200 border border-black bg-cover bg-center mb-2 grayscale" style="background-image: url('https://images.unsplash.com/photo-1522673607200-1645062cd958?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');">
-                        <!-- overlay inside it -->
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <!-- Lock icon -->
+                <div id="memory-card" class="card-sketch p-3 mb-6 rotate-1 cursor-pointer transition-transform active:scale-95 hidden">
+                    <!-- Image Container -->
+                    <div id="memory-img" class="relative w-full aspect-video bg-gray-200 border border-black bg-cover bg-center mb-2 grayscale" style="background-image: none;">
+                        <!-- Lock icon (Hidden by default, shown if locked) -->
+                        <div id="memory-lock" class="absolute inset-0 flex items-center justify-center bg-black/40 hidden">
                             <svg class="w-8 h-8 text-white drop-shadow-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16.5 10.5V7.5A4.5 4.5 0 0012 3 4.5 4.5 0 007.5 7.5v3m9 0h-9m9 0 A2.5 2.5 0 0119 13v5A2.5 2.5 0 0116.5 20.5h-9A2.5 2.5 0 015 18v-5a2.5 2.5 0 012.5-2.5m4 4v2" />
                             </svg>
@@ -409,6 +408,7 @@
                     </div>
                     <p id="txt-memory" class="text-xs font-mono text-center text-gray-400 font-bold uppercase tracking-widest mt-3" data-i18n="profile_memory">carefully selected photo</p>
                 </div>
+
 
                 <!-- Uber Matches -->
                 <div class="card-sketch p-4 mb-6 bg-white">
@@ -455,15 +455,15 @@
                                         <option value="" disabled selected data-i18n="uber_modal_placeholder">Choose a destination...</option>
                                         
                                         <optgroup label="Hong Kong Island (香港島)">
+                                            <option value="Wan Chai / Admiralty">Wan Chai / Admiralty (灣仔 / 金鐘)</option>
                                             <option value="Central">Central (中環)</option>
                                             <option value="Mid-Levels">Mid-Levels (半山)</option>
-                                            <option value="Wan Chai / Admiralty">Wan Chai / Admiralty (灣仔 / 金鐘)</option>
                                             <option value="Sheung Wan / Sai Ying Pun">Sheung Wan / Sai Ying Pun (上環 / 西營盤)</option>
                                             <option value="Kennedy Town / HKU / Shek Tong Tsui">Kennedy Town / HKU (堅尼地城 / 香港大學)</option>
                                             <option value="Pok Fu Lam / Cyberport">Pok Fu Lam / Cyberport (薄扶林 / 數碼港)</option>
+                                            <option value="Wong Chuk Hang / Shouson Hill">Wong Chuk Hang / Shouson Hill (黃竹坑 / 壽臣山)</option>
                                             <option value="Aberdeen">Aberdeen (香港仔)</option>
                                             <option value="Ap Lei Chau">Ap Lei Chau (鴨脷洲)</option>
-                                            <option value="Wong Chuk Hang / Shouson Hill">Wong Chuk Hang / Shouson Hill (黃竹坑 / 壽臣山)</option>
                                             <option value="Repulse Bay / Stanley">Repulse Bay / Stanley (淺水灣 / 赤柱)</option>
                                             <option value="Happy Valley / Wong Nai Chung">Happy Valley / Wong Nai Chung (跑馬地 / 黃泥涌)</option>
                                             <option value="Tai Hang / Tin Hau / Fortress Hill">Tai Hang / Tin Hau / Fortress Hill (大坑/天后/炮台山)</option>
@@ -475,6 +475,8 @@
 
                                         <optgroup label="Kowloon (九龍)">
                                             <option value="TST / Jordan / Yau Ma Tei">TST / Jordan / Yau Ma Tei (尖沙咀 / 佐敦 / 油麻地)</option>
+                                            <option value="Mong Kok / Prince Edward">Mong Kok / Prince Edward (旺角 / 太子)</option>
+                                            <option value="Tai Kok Tsui / Olympic">Tai Kok Tsui / Olympic (大角咀 / 奧運)</option>
                                             <option value="Hung Hom / Whampoa">Hung Hom / Whampoa (紅磡 / 黃埔)</option>
                                             <option value="Ho Man Tin">Ho Man Tin (何文田)</option>
                                             <option value="To Kwa Wan">To Kwa Wan (土瓜灣)</option>
@@ -482,8 +484,6 @@
                                             <option value="Wong Tai Sin / Diamond Hill">Wong Tai Sin / Diamond Hill (黃大仙 / 鑽石山)</option>
                                             <option value="Kowloon Bay / Kwun Tong">Kowloon Bay / Kwun Tong (九龍灣 / 觀塘)</option>
                                             <option value="Yau Tong / Lam Tin">Yau Tong / Lam Tin (油塘 / 藍田)</option>
-                                            <option value="Mong Kok / Prince Edward">Mong Kok / Prince Edward (旺角 / 太子)</option>
-                                            <option value="Tai Kok Tsui / Olympic">Tai Kok Tsui / Olympic (大角咀 / 奧運)</option>
                                             <option value="Shek Kip Mei">Shek Kip Mei (石硤尾)</option>
                                             <option value="Sham Shui Po / Cheung Sha Wan">Sham Shui Po / Cheung Sha Wan (深水埗 / 長沙灣)</option>
                                             <option value="Mei Foo / Lai Chee Kok">Mei Foo / Lai Chee Kok (美孚 / 荔枝角)</option>
@@ -491,22 +491,22 @@
                                         </optgroup>
 
                                         <optgroup label="New Territories (East) (新界東)">
-                                            <option value="Fanling / Sheung Shui">Fanling / Sheung Shui (粉嶺 / 上水)</option>
-                                            <option value="Tai Po">Tai Po (大埔)</option>
                                             <option value="Tai Wai / Sha Tin / Fo Tan">Tai Wai / Sha Tin / Fo Tan (大圍 / 沙田 / 火炭)</option>
                                             <option value="Ma On Shan / Wu Kai Sha">Ma On Shan / Wu Kai Sha (馬鞍山 / 烏溪沙)</option>
-                                            <option value="Sai Kung">Sai Kung (西貢)</option>
+                                            <option value="Tai Po">Tai Po (大埔)</option>
+                                            <option value="Fanling / Sheung Shui">Fanling / Sheung Shui (粉嶺 / 上水)</option>
                                             <option value="Tseung Kwan O / LOHAS">Tseung Kwan O / LOHAS (將軍澳 / 日出康城)</option>
+                                            <option value="Sai Kung">Sai Kung (西貢)</option>
                                         </optgroup>
 
                                         <optgroup label="New Territories (West) & Lantau (新界西及大嶼山)">
-                                            <option value="Kwai Chung">Kwai Chung (葵涌)</option>
                                             <option value="Tsuen Wan">Tsuen Wan (荃灣)</option>
+                                            <option value="Kwai Chung">Kwai Chung (葵涌)</option>
                                             <option value="Tsing Yi">Tsing Yi (青衣)</option>
-                                            <option value="Tuen Mun">Tuen Mun (屯門)</option>
-                                            <option value="Tin Shui Wai">Tin Shui Wai (天水圍)</option>
-                                            <option value="Yuen Long">Yuen Long (元朗)</option>
                                             <option value="Kam Tin">Kam Tin (錦田)</option>
+                                            <option value="Yuen Long">Yuen Long (元朗)</option>
+                                            <option value="Tin Shui Wai">Tin Shui Wai (天水圍)</option>
+                                            <option value="Tuen Mun">Tuen Mun (屯門)</option>
                                             <option value="Lantau Island">Lantau Island (大嶼山)</option>
                                         </optgroup>
 
@@ -729,6 +729,19 @@
             </button>
         </div>
     </div>
+
+    <!-- Full Screen Image Modal -->
+    <dialog id="image-modal" class="p-0 m-0 w-full h-full max-w-none max-h-none bg-black/90 backdrop:bg-black/90 focus:outline-none">
+        <div class="relative w-full h-full flex items-center justify-center">
+            <!-- Close Button -->
+            <button id="btn-close-image" class="absolute top-4 right-4 z-50 w-10 h-10 bg-white/20 rounded-full text-white flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <!-- The Full Image -->
+            <img id="full-memory-img" src="" class="max-w-full max-h-full object-contain pointer-events-none" alt="Memory">
+        </div>
+    </dialog>
+
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
