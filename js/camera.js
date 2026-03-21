@@ -132,5 +132,4 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Could not sync scan with database. Please try again.');
         }
     }
-
 });
