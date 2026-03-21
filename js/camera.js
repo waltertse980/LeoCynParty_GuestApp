@@ -98,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 5. Directly access global variables (do not use window. prefix for let/const)
             if (typeof guestData === 'undefined' || !guestData || !guestData.uid) {
                 console.error("Guest data is missing from scope!");
                 return;
@@ -110,42 +109,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const currentUid = guestData.uid;
             const now = new Date().toISOString();
-            console.log('DB Update: Check-in! Scanned Station = ' + qrData);
+            
+            // Clean the QR data just in case there are invisible spaces
+            const cleanQR = qrData.trim(); 
+            console.log('DB Update: Check-in! Scanned Station = ' + cleanQR);
 
             // 6. Update Mobile App's own status table
             const { error: statusErr } = await db.from('status')
-                .update({ checkintime: now, stationqr: qrData })
+                .update({ checkintime: now, stationqr: cleanQR })
                 .eq('uid', currentUid);
 
-            if (statusErr) throw statusErr;
+            if (statusErr) throw new Error("Status table error: " + statusErr.message);
 
             // 7. WAKE UP THE IPAD (reception table)
+            // Upsert will gracefully create the row if it doesn't exist, or update it if it does.
             const { error: receptionErr } = await db.from('reception')
-                .update({ uid: currentUid, time: now })
-                .eq('stationqr', qrData);
-
-            if (receptionErr) {
-                // Fallback: Upsert if the row doesn't exist
-                await db.from('reception').upsert({ 
-                    stationqr: qrData, 
+                .upsert({ 
+                    stationqr: cleanQR, 
                     uid: currentUid, 
                     time: now 
                 });
-            }
+
+            if (receptionErr) throw new Error("Reception table error: " + receptionErr.message);
 
             // 8. Update local guest memory
             guestData.checkintime = now;
-            guestData.stationqr = qrData;
+            guestData.stationqr = cleanQR;
             
-            // 9. Update UI (Assuming you have this function in ui.js)
+            // 9. Update UI 
             if (typeof updateStatusCard === 'function') updateStatusCard();
             
             alert("Check-in Successful!");
 
         } catch (err) {
+            // THIS IS THE CRITICAL LINE: It will tell us EXACTLY what Supabase rejected
             console.error('Scan handling crashed:', err);
-            alert('Could not sync scan with database. Please try again.');
+            alert('Could not sync scan with database. Check console for details.');
         }
+
     }
 
 });
