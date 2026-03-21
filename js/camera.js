@@ -71,65 +71,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSuccessfulScan(qrData) {
-        // 1. Instantly stop the scanning loop and hide animations
+        // 1. Stop the scanning loop
         scanning = false;
-        const scanAnimation = document.getElementById('scan-animation');
-        if (scanAnimation) scanAnimation.classList.add('hidden');
         
-        // 2. Shut off the camera hardware to prevent freezing
+        // 2. Grab all the UI elements we need to reset
+        const scanAnimation = document.getElementById('scan-animation');
         const cameraFeed = document.getElementById('camera-feed');
-        if (cameraFeed && cameraFeed.srcObject) {
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const btnOpenCamera = document.getElementById('btn-open-camera');
+
+        // 3. Stop the camera tracks and clear the global stream lock
+        if (window.currentStream) {
+            window.currentStream.getTracks().forEach(track => track.stop());
+            window.currentStream = null; // Frees the lock so it can be opened again!
+        } else if (cameraFeed && cameraFeed.srcObject) {
             cameraFeed.srcObject.getTracks().forEach(track => track.stop());
         }
 
+        // 4. RESET THE UI: Hide video, show placeholder, reset button
+        if (scanAnimation) scanAnimation.classList.add('hidden');
+        if (cameraFeed) cameraFeed.classList.add('hidden');
+        if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
+        if (btnOpenCamera) {
+            btnOpenCamera.classList.remove('hidden', 'opacity-50', 'cursor-not-allowed');
+            btnOpenCamera.textContent = btnOpenCamera.getAttribute('data-original-text') || "SCAN QR"; 
+        }
+
         try {
-            // 3. Safely grab the global variables
-            const currentUid = (typeof window.guestData !== 'undefined' && window.guestData) ? window.guestData.uid : null;
-            if (!currentUid) {
-                console.error("Guest data not found in global scope.");
+            // 5. Directly access global variables (do not use window. prefix for let/const)
+            if (typeof guestData === 'undefined' || !guestData || !guestData.uid) {
+                console.error("Guest data is missing from scope!");
+                return;
+            }
+            if (typeof db === 'undefined' || !db) {
+                console.error("Database client (db) is missing from scope!");
                 return;
             }
 
+            const currentUid = guestData.uid;
             const now = new Date().toISOString();
             console.log('DB Update: Check-in! Scanned Station = ' + qrData);
 
-            // 4. Update Mobile App's own record (status table)
-            const { error: statusErr } = await window.db.from('status')
+            // 6. Update Mobile App's own status table
+            const { error: statusErr } = await db.from('status')
                 .update({ checkintime: now, stationqr: qrData })
                 .eq('uid', currentUid);
 
             if (statusErr) throw statusErr;
 
-            // 5. WAKE UP THE IPAD (reception table)
-            // The iPad specifically listens for an UPDATE event on this table 
-            // matching its current station ID.
-            const { error: receptionErr } = await window.db.from('reception')
+            // 7. WAKE UP THE IPAD (reception table)
+            const { error: receptionErr } = await db.from('reception')
                 .update({ uid: currentUid, time: now })
                 .eq('stationqr', qrData);
 
             if (receptionErr) {
-                // Fallback: Upsert if the iPad somehow hasn't created the row yet
-                await window.db.from('reception').upsert({ 
+                // Fallback: Upsert if the row doesn't exist
+                await db.from('reception').upsert({ 
                     stationqr: qrData, 
                     uid: currentUid, 
                     time: now 
                 });
             }
 
-            // 6. Update local guest memory
-            window.guestData.checkintime = now;
-            window.guestData.stationqr = qrData;
+            // 8. Update local guest memory
+            guestData.checkintime = now;
+            guestData.stationqr = qrData;
             
-            // 7. Update UI and return to the main tab
-            if (typeof window.updateStatusCard === 'function') window.updateStatusCard();
+            // 9. Update UI (Assuming you have this function in ui.js)
+            if (typeof updateStatusCard === 'function') updateStatusCard();
             
-            // Simulate a click on the Home tab to transition the user away from the camera screen
-            const homeTabBtn = document.getElementById('tab-btn-home'); // Update ID if your tab trigger differs
-            if (homeTabBtn) homeTabBtn.click();
+            alert("Check-in Successful!");
 
         } catch (err) {
             console.error('Scan handling crashed:', err);
             alert('Could not sync scan with database. Please try again.');
         }
     }
+
 });
