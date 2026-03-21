@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 6. Update Mobile App's own status table
             const { error: statusErr } = await db.from('status')
-                .update({ checkintime: now, stationqr: cleanQR })
+                .update({ checkin_time: now, station_qr: cleanQR })
                 .eq('uid', currentUid);
 
             if (statusErr) throw new Error("Status table error: " + statusErr.message);
@@ -133,8 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (receptionErr) throw new Error("Reception table error: " + receptionErr.message);
 
             // 8. Update local guest memory
-            guestData.checkintime = now;
-            guestData.stationqr = cleanQR;
+            guestData.checkin_time = now;
+            guestData.station_qr = cleanQR;
             
             // 9. Update UI 
             if (typeof updateStatusCard === 'function') updateStatusCard();
