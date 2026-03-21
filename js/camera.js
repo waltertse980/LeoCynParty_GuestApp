@@ -70,29 +70,67 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(tick);
     }
 
-    function handleSuccessfulScan(qrData) {
+    async function handleSuccessfulScan(qrData) {
+        // 1. Instantly stop the scanning loop and hide animations
         scanning = false;
+        const scanAnimation = document.getElementById('scan-animation');
+        if (scanAnimation) scanAnimation.classList.add('hidden');
         
-        // Stop animation
-        scanAnimation.classList.add('hidden');
-        
-        // Stop the camera stream to save battery and turn off the green light
-        const stream = cameraFeed.srcObject;
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
+        // 2. Shut off the camera hardware to prevent freezing
+        const cameraFeed = document.getElementById('camera-feed');
+        if (cameraFeed && cameraFeed.srcObject) {
+            cameraFeed.srcObject.getTracks().forEach(track => track.stop());
         }
 
-        // =====================================
-        // CHECK-IN & STATION LOGIC HAPPENS HERE
-        // =====================================
-        
-        alert("Success! Scanned: " + qrData);
-        
-        // Example logic:
-        // if (qrData === "GUEST_CHECK_IN") {
-        //    // Update Supabase to mark guest as checked in
-        // } else if (qrData === "STATION_1") {
-        //    // Update mission progress
-        // }
+        try {
+            // 3. Safely grab the global variables
+            const currentUid = (typeof window.guestData !== 'undefined' && window.guestData) ? window.guestData.uid : null;
+            if (!currentUid) {
+                console.error("Guest data not found in global scope.");
+                return;
+            }
+
+            const now = new Date().toISOString();
+            console.log('DB Update: Check-in! Scanned Station = ' + qrData);
+
+            // 4. Update Mobile App's own record (status table)
+            const { error: statusErr } = await window.db.from('status')
+                .update({ checkintime: now, stationqr: qrData })
+                .eq('uid', currentUid);
+
+            if (statusErr) throw statusErr;
+
+            // 5. WAKE UP THE IPAD (reception table)
+            // The iPad specifically listens for an UPDATE event on this table 
+            // matching its current station ID.
+            const { error: receptionErr } = await window.db.from('reception')
+                .update({ uid: currentUid, time: now })
+                .eq('stationqr', qrData);
+
+            if (receptionErr) {
+                // Fallback: Upsert if the iPad somehow hasn't created the row yet
+                await window.db.from('reception').upsert({ 
+                    stationqr: qrData, 
+                    uid: currentUid, 
+                    time: now 
+                });
+            }
+
+            // 6. Update local guest memory
+            window.guestData.checkintime = now;
+            window.guestData.stationqr = qrData;
+            
+            // 7. Update UI and return to the main tab
+            if (typeof window.updateStatusCard === 'function') window.updateStatusCard();
+            
+            // Simulate a click on the Home tab to transition the user away from the camera screen
+            const homeTabBtn = document.getElementById('tab-btn-home'); // Update ID if your tab trigger differs
+            if (homeTabBtn) homeTabBtn.click();
+
+        } catch (err) {
+            console.error('Scan handling crashed:', err);
+            alert('Could not sync scan with database. Please try again.');
+        }
     }
+
 });
