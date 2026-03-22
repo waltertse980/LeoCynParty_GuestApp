@@ -8,8 +8,7 @@ async function setupMemoryLane() {
 
     if (!memoryCard || !guestData) return;
 
-    // 1. If no image exists in storage for this user, completely hide the card and stop.
-    // Make sure we check string 'true' or boolean true depending on how CSV/DB parses it
+    // 1. Check if user has an image assigned in the database
     const hasImage = guestData.iconExist === true || guestData.iconExist === 'true' || guestData.iconExist === 'TRUE';
     
     if (!hasImage || !guestData.icon_filename || guestData.icon_filename === 'NULL') {
@@ -17,33 +16,41 @@ async function setupMemoryLane() {
         return; 
     }
 
-    // 2. We HAVE an image! Show the card on the UI.
+    // 2. Card should be visible because they have an image
     memoryCard.classList.remove('hidden');
 
-    const revealDate = new Date("2026-03-25T18:30:00+08:00"); // +08:00 ensures Hong Kong Time
+    const revealDate = new Date("2026-03-25T18:30:00+08:00");
     const now = new Date();
-    
-    // Check if the user is one of the test accounts
     const isTestAdmin = (guestData.uid === 'admin_003' || guestData.uid === 'guest_000');
 
-    // 3. Time Lock Logic
-    // If we are BEFORE the reveal date AND not a test user, keep it locked.
+    // 3. Time Logic
     if (now < revealDate && !isTestAdmin) {
+        // --- LOCKED STATE (BEFORE TIME IS UP) ---
         memoryLock.classList.remove('hidden'); // Show Padlock
-        memoryImg.style.backgroundImage = 'none'; // Keep it grey
+        memoryImg.style.backgroundImage = 'none'; // Completely covered/grey
+        
+        // Ensure no blur classes are accidentally left on if state changes
+        memoryImg.classList.remove('filter', 'blur-md', 'scale-110');
+        
         txtMemory.textContent = "REVEALS MAR 25, 18:30";
         memoryCard.onclick = null; // Disable clicking
         return; 
     }
 
-    // 4. Time is up (or test user)! Reveal the image.
+    // --- UNLOCKED STATE (TIME IS UP!) ---
     const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
     const targetFileName = guestData.icon_filename.trim();
     const validUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/${targetFileName}`;
 
     memoryLock.classList.add('hidden'); // Hide Padlock
-    memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
-    txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
+    memoryImg.style.backgroundImage = `url('${validUrl}')`; // Apply the image
+    
+    // 🔥 Apply the blur to the preview image in the card
+    memoryImg.classList.add('filter', 'blur-md', 'scale-110');
+    
+    // Update text to tell them to tap
+    const isZh = document.body.classList.contains('lang-zh');
+    txtMemory.textContent = isZh ? "點擊查看精選照片" : "tap to reveal your photo";
 
     // Setup fullscreen popup modal
     const dialog = document.getElementById('image-modal');
@@ -51,8 +58,10 @@ async function setupMemoryLane() {
     const closeBtn = document.getElementById('btn-close-image');
 
     if (dialog && fullImg) {
+        // When they tap the card, the full modal opens with the UNBLURRED image
         memoryCard.onclick = () => {
-            fullImg.src = validUrl;
+            fullImg.src = validUrl; 
+            // Note: fullImg does NOT have the blur classes, so it will be crystal clear!
             dialog.showModal();
         };
 
