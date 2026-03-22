@@ -8,7 +8,6 @@ async function setupMemoryLane() {
 
     if (!memoryCard || !guestData) return;
 
-    // 1. Check if user has an image assigned in the database
     const hasImage = guestData.iconExist === true || guestData.iconExist === 'true' || guestData.iconExist === 'TRUE';
     
     if (!hasImage || !guestData.icon_filename || guestData.icon_filename === 'NULL') {
@@ -16,7 +15,6 @@ async function setupMemoryLane() {
         return; 
     }
 
-    // 2. Card should be visible because they have an image
     memoryCard.classList.remove('hidden');
 
     const revealDate = new Date("2026-03-25T18:30:00+08:00");
@@ -26,14 +24,14 @@ async function setupMemoryLane() {
     // 3. Time Logic
     if (now < revealDate && !isTestAdmin) {
         // --- LOCKED STATE (BEFORE TIME IS UP) ---
-        memoryLock.classList.remove('hidden'); // Show Padlock
-        memoryImg.style.backgroundImage = 'none'; // Completely covered/grey
+        memoryLock.classList.remove('hidden'); 
+        memoryImg.style.backgroundImage = 'none'; 
         
-        // Ensure no blur classes are accidentally left on if state changes
-        memoryImg.classList.remove('filter', 'blur-md', 'scale-110');
+        // Remove blur classes just to be safe
+        memoryImg.classList.remove('filter', 'blur-[10px]', 'scale-110');
         
         txtMemory.textContent = "REVEALS MAR 25, 18:30";
-        memoryCard.onclick = null; // Disable clicking
+        memoryCard.onclick = null; 
         return; 
     }
 
@@ -42,26 +40,22 @@ async function setupMemoryLane() {
     const targetFileName = guestData.icon_filename.trim();
     const validUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/${targetFileName}`;
 
-    memoryLock.classList.add('hidden'); // Hide Padlock
-    memoryImg.style.backgroundImage = `url('${validUrl}')`; // Apply the image
+    memoryLock.classList.add('hidden'); 
+    memoryImg.style.backgroundImage = `url('${validUrl}')`; 
     
-    // 🔥 Apply the blur to the preview image in the card
-    memoryImg.classList.add('filter', 'blur-md', 'scale-110');
+    // 🔥 You can adjust 'blur-[10px]' to 'blur-[5px]' or 'blur-[15px]' right here:
+    memoryImg.classList.add('filter', 'blur-[10px]', 'scale-110');
     
-    // Update text to tell them to tap
     const isZh = document.body.classList.contains('lang-zh');
     txtMemory.textContent = isZh ? "點擊查看精選照片" : "tap to reveal your photo";
 
-    // Setup fullscreen popup modal
     const dialog = document.getElementById('image-modal');
     const fullImg = document.getElementById('full-memory-img');
     const closeBtn = document.getElementById('btn-close-image');
 
     if (dialog && fullImg) {
-        // When they tap the card, the full modal opens with the UNBLURRED image
         memoryCard.onclick = () => {
             fullImg.src = validUrl; 
-            // Note: fullImg does NOT have the blur classes, so it will be crystal clear!
             dialog.showModal();
         };
 
