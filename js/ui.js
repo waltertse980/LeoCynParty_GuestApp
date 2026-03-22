@@ -1,4 +1,5 @@
 // 3. UI Updates after successful login
+
 async function setupMemoryLane() {
     const memoryCard = document.getElementById('memory-card');
     const memoryImg = document.getElementById('memory-img');
@@ -7,74 +8,59 @@ async function setupMemoryLane() {
     
     if (!memoryCard || !guestData) return;
 
-    const isLockedAdmin = (guestData.uid === 'admin_001' || guestData.uid === 'admin_002');
     const revealDate = new Date("2026-03-25T18:30:00");
     const now = new Date();
 
-    if (isLockedAdmin && now < revealDate) {
-        memoryCard.classList.remove('hidden');
-        memoryLock.classList.remove('hidden');
+    // 1. If we are BEFORE the reveal date, lock it and stop.
+    if (now < revealDate) {
+        memoryLock.classList.remove('hidden'); // Show Padlock
+        memoryImg.style.backgroundImage = 'none'; // Keep it grey
         txtMemory.textContent = "REVEALS MAR 25, 18:30";
+        memoryCard.onclick = null; // Disable clicking
         return; 
     }
 
+    // 2. We are PAST the reveal date! Let's get the image.
     let targetFileName = guestData.icon_filename;
     if (targetFileName) targetFileName = targetFileName.trim();
     
     if (!targetFileName || targetFileName === 'NULL' || targetFileName === '') {
-        console.log("No icon_filename in database.");
+        // No image assigned to user, show pending state
+        memoryLock.classList.remove('hidden');
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
         return;
     }
 
-    // --- UPDATED: Use Supabase Storage URL instead of local path ---
-    // Format: https://[PROJECT_ID].supabase.co/storage/v1/object/public/[BUCKET_NAME]/[FILE_NAME]
-    const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; // Replace this!
+    // --- PASTE YOUR SUPABASE PROJECT ID HERE ---
+    const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
     const baseUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/`;
 
-    // 💥 FIX: Added a 1.5-second timeout so the Promise never hangs forever
+    // 1.5 second timeout wrapper to prevent code freezing
     const checkImage = (url) => new Promise((resolve) => {
         const img = new Image();
-        
-        const timeout = setTimeout(() => {
-            console.log("Image check timed out for:", url);
-            resolve(null);
-        }, 1500); // 1.5 seconds max
+        const timeout = setTimeout(() => resolve(null), 1500); 
 
-        img.onload = () => {
-            clearTimeout(timeout);
-            resolve(url);
-        };
-        img.onerror = () => {
-            clearTimeout(timeout);
-            resolve(null);
-        };
-        
+        img.onload = () => { clearTimeout(timeout); resolve(url); };
+        img.onerror = () => { clearTimeout(timeout); resolve(null); };
         img.src = url;
     });
 
     const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
     let validUrl = null;
 
-    console.log("Checking Supabase for Memory Lane image...");
-
-    // Loop through extensions to find the image
     for (const ext of extensions) {
         const testUrl = `${baseUrl}${targetFileName}${ext}`;
         validUrl = await checkImage(testUrl);
-        if (validUrl) break; // Found it! Stop looking.
+        if (validUrl) break; // Found it!
     }
 
-    // 🔥 This will now ALWAYS execute, showing the card even if the image is broken!
-    memoryCard.classList.remove('hidden');
-
+    // 3. Apply the Image if found, otherwise show locked state
     if (validUrl) {
-        console.log("Successfully loaded Memory Lane image:", validUrl);
-        
-        memoryLock.classList.add('hidden');
-        memoryImg.style.backgroundImage = `url('${validUrl}')`;
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
+        memoryLock.classList.add('hidden'); // Hide Padlock
+        memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
 
-        // Click to open fullscreen
+        // Setup fullscreen popup
         const dialog = document.getElementById('image-modal');
         const fullImg = document.getElementById('full-memory-img');
         const closeBtn = document.getElementById('btn-close-image');
@@ -91,12 +77,12 @@ async function setupMemoryLane() {
             };
         }
     } else {
-        console.log("Failed to find image on Supabase for:", targetFileName);
-        // Fallback UI if image isn't found
+        // File wasn't found on Supabase
         memoryLock.classList.remove('hidden');
         txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
     }
 }
+
 
 async function populateUIWithGuestData() {
     if (!guestData) return;
