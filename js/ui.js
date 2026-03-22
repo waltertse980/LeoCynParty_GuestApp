@@ -8,14 +8,16 @@ async function setupMemoryLane() {
     
     if (!memoryCard || !guestData) return;
 
-    // 🔥 FORCE THE CARD TO SHOW UP IMMEDIATELY, NO MATTER WHAT!
+    // 🔥 FORCE THE CARD TO SHOW UP IMMEDIATELY
     memoryCard.classList.remove('hidden');
 
     const revealDate = new Date("2026-03-25T18:30:00");
     const now = new Date();
 
-    // 1. If we are BEFORE the reveal date, lock it and stop.
-    if (now < revealDate) {
+    // 1. Time Lock Logic (Bypass for admin_003 testing!)
+    const isTestAdmin = (guestData.uid === 'admin_003'|| guestData.uid === 'guest_000');
+
+    if (now < revealDate && !isTestAdmin) {
         memoryLock.classList.remove('hidden'); // Show Padlock
         memoryImg.style.backgroundImage = 'none'; // Keep it grey
         txtMemory.textContent = "REVEALS MAR 25, 18:30";
@@ -23,23 +25,20 @@ async function setupMemoryLane() {
         return; 
     }
 
-    // 2. We are PAST the reveal date! Let's get the image.
+    // 2. We are PAST the reveal date (or you are admin_003)! Let's get the image.
     let targetFileName = guestData.icon_filename;
     if (targetFileName) targetFileName = targetFileName.trim();
     
     if (!targetFileName || targetFileName === 'NULL' || targetFileName === '') {
-        // No image assigned to user, show pending state
         memoryLock.classList.remove('hidden');
         txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
-        memoryCard.onclick = null; // Disable clicking
+        memoryCard.onclick = null; 
         return;
     }
 
-    // --- PASTE YOUR SUPABASE PROJECT ID HERE ---
     const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
     const baseUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/`;
 
-    // 1.5 second timeout wrapper to prevent code freezing
     const checkImage = (url) => new Promise((resolve) => {
         const img = new Image();
         const timeout = setTimeout(() => resolve(null), 1500); 
@@ -55,14 +54,14 @@ async function setupMemoryLane() {
     for (const ext of extensions) {
         const testUrl = `${baseUrl}${targetFileName}${ext}`;
         validUrl = await checkImage(testUrl);
-        if (validUrl) break; // Found it!
+        if (validUrl) break;
     }
 
-    // 3. Apply the Image if found, otherwise show locked state
+    // 3. Apply the Image
     if (validUrl) {
         memoryLock.classList.add('hidden'); // Hide Padlock
         memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
 
         // Setup fullscreen popup
         const dialog = document.getElementById('image-modal');
@@ -81,10 +80,9 @@ async function setupMemoryLane() {
             };
         }
     } else {
-        // File wasn't found on Supabase
         memoryLock.classList.remove('hidden');
         txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
-        memoryCard.onclick = null; // Disable clicking
+        memoryCard.onclick = null;
     }
 }
 
