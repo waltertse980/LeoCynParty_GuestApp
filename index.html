@@ -738,26 +738,24 @@
 
     <!-- FULLSCREEN IMAGE MODAL -->
     <dialog id="image-modal" class="p-0 m-0 w-full h-full max-w-none max-h-none bg-black/90 focus:outline-none">
-        <div class="relative w-full h-full flex flex-col items-center justify-center p-6">
+        <div class="relative w-full h-full flex items-center justify-center p-6">
             
-            <!-- Close Button -->
+            <!-- Close Button (Top Right) -->
             <button id="btn-close-image" class="absolute top-4 right-4 z-50 w-10 h-10 bg-white/20 rounded-full text-white flex items-center justify-center text-xl hover:bg-white/40 transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             
+            <!-- Floating Download/Save Button (Just below the Close button) -->
+            <a id="btn-download-image" href="#" class="absolute top-16 right-4 z-50 w-10 h-10 bg-white/20 rounded-full text-white flex items-center justify-center text-lg hover:bg-white/40 transition mt-2">
+                <i class="fa-solid fa-download"></i>
+            </a>
+
             <!-- The Image -->
             <!-- Removed pointer-events-none so users can long-press to save natively -->
-            <img id="full-memory-img" class="max-w-full max-h-[75vh] object-contain rounded-md shadow-2xl mb-6" alt="Memory" />
+            <img id="full-memory-img" class="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl" alt="Memory" />
             
-            <!-- Download/Save Button -->
-            <a id="btn-download-image" href="#" class="w-full max-w-xs bg-white text-black border-2 border-black p-3 text-center uppercase text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 transition">
-                <i class="fa-solid fa-download"></i> <span data-i18n="profile_download">Save to Photos</span>
-            </a>
         </div>
     </dialog>
-
-
-
 
     <script>
     if ('serviceWorker' in navigator) {
