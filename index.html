@@ -397,16 +397,17 @@
 
                 <!-- Memory Lane -->
                 <!-- I REMOVED 'hidden' from the end of this class list! -->
-                <div id="memory-card" class="card-sketch p-3 mb-6 rotate-1 cursor-pointer transition-transform active:scale-95 hidden overflow-hidden relative">
+                <div id="memory-card" class="card-sketch p-4 mb-6 rotate-1 cursor-pointer transition-transform active:scale-95 hidden relative">
                     <!-- Image Container -->
-                    <div id="memory-img" class="relative w-full aspect-video bg-gray-200 border border-black bg-cover bg-center mb-2 grayscale" style="background-image: none;">
-                        <!-- Lock icon (This remains hidden by default, JS will turn it on) -->
-                        <div id="memory-lock" class="absolute inset-0 flex items-center justify-center bg-black/40 hidden">
+                    <div id="memory-img" class="absolute inset-0 bg-cover bg-center grayscale transition-all duration-300" style="background-image: none;"></div>                        <!-- Lock icon (This remains hidden by default, JS will turn it on) -->
+                        <!-- Lock icon (Hidden by default, shown if locked) -->
+                        <div id="memory-lock" class="absolute inset-0 flex items-center justify-center bg-black/40 hidden z-10">
                             <svg class="w-8 h-8 text-white drop-shadow-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16.5 10.5V7.5A4.5 4.5 0 0012 3 4.5 4.5 0 007.5 7.5v3m9 0h-9m9 0 A2.5 2.5 0 0119 13v5A2.5 2.5 0 0116.5 20.5h-9A2.5 2.5 0 015 18v-5a2.5 2.5 0 012.5-2.5m4 4v2" />
+                                <path d="M16.5 10.5V7.5A4.5 4.5 0 0012 3 4.5 4.5 0 007.5 7.5v3m9 0h-9m9 0 A2.5 2.5 0 0119 13v5A2.5 2.5 0 0116.5 20.5h-9A2.5 2.5 0 015 18v-5a2.5 2.5 0 012.5-2.5m4 4v2"></path>
                             </svg>
                         </div>
                     </div>
+                    <!-- Text -->
                     <p id="txt-memory" class="text-xs font-mono text-center text-gray-400 font-bold uppercase tracking-widest mt-3" data-i18n="profile_memory">carefully selected photo</p>
                 </div>
 
