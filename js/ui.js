@@ -18,44 +18,63 @@ async function setupMemoryLane() {
         return; 
     }
 
-    // Clean the filename just in case there are invisible spaces
     let targetFileName = guestData.icon_filename;
     if (targetFileName) targetFileName = targetFileName.trim();
     
     if (!targetFileName || targetFileName === 'NULL' || targetFileName === '') {
-        console.log("No icon_filename found in database for this user.");
+        console.log("No icon_filename in database.");
         return;
     }
+
+    // --- UPDATED: Use Supabase Storage URL instead of local path ---
+    // Format: https://[PROJECT_ID].supabase.co/storage/v1/object/public/[BUCKET_NAME]/[FILE_NAME]
+    const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; // Replace this!
+    const baseUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/`;
+
+    // 💥 FIX: Added a 1.5-second timeout so the Promise never hangs forever
+    const checkImage = (url) => new Promise((resolve) => {
+        const img = new Image();
+        
+        const timeout = setTimeout(() => {
+            console.log("Image check timed out for:", url);
+            resolve(null);
+        }, 1500); // 1.5 seconds max
+
+        img.onload = () => {
+            clearTimeout(timeout);
+            resolve(url);
+        };
+        img.onerror = () => {
+            clearTimeout(timeout);
+            resolve(null);
+        };
+        
+        img.src = url;
+    });
 
     const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
     let validUrl = null;
 
-    // Use Fetch HEAD request (Much faster and more reliable than new Image())
+    console.log("Checking Supabase for Memory Lane image...");
+
+    // Loop through extensions to find the image
     for (const ext of extensions) {
-        const testUrl = `./memory/${targetFileName}${ext}`;
-        try {
-            const response = await fetch(testUrl, { method: 'HEAD' });
-            if (response.ok && response.status === 200) {
-                validUrl = testUrl;
-                break; // Stop looking once we find the right one
-            }
-        } catch (e) {
-            // Ignore network errors and continue to the next extension
-        }
+        const testUrl = `${baseUrl}${targetFileName}${ext}`;
+        validUrl = await checkImage(testUrl);
+        if (validUrl) break; // Found it! Stop looking.
     }
 
-    if (validUrl) {
-        console.log("Successfully found image:", validUrl);
-        
-        // Ensure the card is un-hidden
-        memoryCard.classList.remove('hidden');
-        memoryLock.classList.add('hidden');
-        
-        // Set the background
-        memoryImg.style.backgroundImage = `url('${validUrl}')`;
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
+    // 🔥 This will now ALWAYS execute, showing the card even if the image is broken!
+    memoryCard.classList.remove('hidden');
 
-        // Setup the popup click logic
+    if (validUrl) {
+        console.log("Successfully loaded Memory Lane image:", validUrl);
+        
+        memoryLock.classList.add('hidden');
+        memoryImg.style.backgroundImage = `url('${validUrl}')`;
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
+
+        // Click to open fullscreen
         const dialog = document.getElementById('image-modal');
         const fullImg = document.getElementById('full-memory-img');
         const closeBtn = document.getElementById('btn-close-image');
@@ -72,7 +91,10 @@ async function setupMemoryLane() {
             };
         }
     } else {
-        console.log("Checked all extensions, but no image was found in the /memory/ folder for:", targetFileName);
+        console.log("Failed to find image on Supabase for:", targetFileName);
+        // Fallback UI if image isn't found
+        memoryLock.classList.remove('hidden');
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
     }
 }
 
