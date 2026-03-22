@@ -28,7 +28,7 @@ async function setupMemoryLane() {
         memoryImg.style.backgroundImage = 'none'; 
         
         // Remove blur classes just to be safe
-        memoryImg.classList.remove('filter', 'blur-[10px]', 'scale-110');
+        memoryImg.classList.remove('filter', 'blur-[12px]', 'scale-110');
         
         txtMemory.textContent = "REVEALS MAR 25, 18:30";
         memoryCard.onclick = null; 
@@ -47,10 +47,10 @@ async function setupMemoryLane() {
     memoryImg.classList.remove('grayscale');
 
     // 🔥 You can adjust 'blur-[10px]' to 'blur-[5px]' or 'blur-[15px]' right here:
-    memoryImg.classList.add('filter', 'blur-[10px]', 'scale-110');
+    memoryImg.classList.add('filter', 'blur-[12px]', 'scale-110');
     
     const isZh = document.body.classList.contains('lang-zh');
-    txtMemory.textContent = isZh ? "點擊查看精選照片" : "tap to reveal your photo";
+    txtMemory.textContent = isZh ? "精選照片" : "carefully selected photo";
 
     const dialog = document.getElementById('image-modal');
     const fullImg = document.getElementById('full-memory-img');
