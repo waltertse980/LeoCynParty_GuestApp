@@ -27,21 +27,23 @@ async function checkExistingLogin() {
     let storedAuthKey = null;
     try {
         storedAuthKey = localStorage.getItem('guestAppAuthKey');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+    }
 
     if (storedAuthKey) {
-        // SAFEGUARD: Clean the key again just in case
-        const cleanKey = storedAuthKey.trim().toUpperCase();
-        // Re-verify against CSV to load guestData
-        const userId = await deriveUserIdFromKey(cleanKey);        if (userId) {
+        const userId = await deriveUserIdFromKey(storedAuthKey);
+        if (userId) {
             setLoggedIn(userId, storedAuthKey);
             updateStatusCard();
-            return; // Stay on the app-container
+            document.body.classList.remove('booting');
+            return;
         }
     }
 
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('app-container').classList.add('hidden');
+    document.body.classList.remove('booting');
 }
 
 async function attemptLogin() {
