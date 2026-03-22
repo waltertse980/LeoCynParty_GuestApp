@@ -25,6 +25,11 @@ body {
     letter-spacing: 0.05em !important; 
 }
 
+body.booting #login-screen,
+body.booting #app-container {
+  display: none !important;
+}
+
 /* Language-specific scaling for Chinese readability and layout consistency */
 
 /* 1. Global sizing adjustment for Chinese */
