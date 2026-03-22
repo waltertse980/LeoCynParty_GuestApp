@@ -43,6 +43,9 @@ async function setupMemoryLane() {
     memoryLock.classList.add('hidden'); 
     memoryImg.style.backgroundImage = `url('${validUrl}')`; 
     
+    // 🔥 1. Remove the grayscale class so the color comes back!
+    memoryImg.classList.remove('grayscale');
+
     // 🔥 You can adjust 'blur-[10px]' to 'blur-[5px]' or 'blur-[15px]' right here:
     memoryImg.classList.add('filter', 'blur-[6px]', 'scale-110');
     
