@@ -736,17 +736,23 @@
         </div>
     </div>
 
-    <!-- Full Screen Image Modal -->
-    <dialog id="image-modal" class="p-0 m-0 w-full h-full max-w-none max-h-none bg-black/90 backdrop:bg-black/90 focus:outline-none">
-        <div class="relative w-full h-full flex items-center justify-center">
-            <!-- Close Button -->
-            <button id="btn-close-image" class="absolute top-4 right-4 z-50 w-10 h-10 bg-white/20 rounded-full text-white flex items-center justify-center">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <!-- The Full Image -->
-            <img id="full-memory-img" src="" class="max-w-full max-h-full object-contain pointer-events-none" alt="Memory">
-        </div>
+    <!-- FULLSCREEN IMAGE MODAL -->
+    <dialog id="image-modal" class="backdrop:bg-black/80 bg-transparent p-4 m-auto w-full max-w-lg outline-none">
+    <div class="relative flex flex-col items-center">
+        <!-- Close Button (Top Right) -->
+        <button id="btn-close-image" class="absolute -top-10 right-0 text-white text-3xl opacity-80 hover:opacity-100">&times;</button>
+        
+        <!-- NEW: Download Button (Top Left) -->
+        <a id="btn-download-image" href="#" class="absolute -top-9 left-0 text-white text-2xl opacity-80 hover:opacity-100 flex items-center justify-center">
+        <i class="fa-solid fa-download"></i>
+        </a>
+        
+        <!-- The Image -->
+        <img id="full-memory-img" class="w-full h-auto rounded shadow-2xl mb-4" />
+    </div>
     </dialog>
+
+
 
     <script>
     if ('serviceWorker' in navigator) {
