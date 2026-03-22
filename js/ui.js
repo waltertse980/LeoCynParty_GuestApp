@@ -55,10 +55,18 @@ async function setupMemoryLane() {
     const dialog = document.getElementById('image-modal');
     const fullImg = document.getElementById('full-memory-img');
     const closeBtn = document.getElementById('btn-close-image');
+    const downloadBtn = document.getElementById('btn-download-image'); // NEW
 
     if (dialog && fullImg) {
         memoryCard.onclick = () => {
             fullImg.src = validUrl; 
+            
+            // NEW: Apply the download link
+            if (downloadBtn) {
+                // By appending ?download=, Supabase forces a direct download
+                downloadBtn.href = `${validUrl}?download=SecondDraft_${targetFileName}`;
+            }
+
             dialog.showModal();
         };
 
