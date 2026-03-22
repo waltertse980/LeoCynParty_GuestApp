@@ -5,18 +5,29 @@ async function setupMemoryLane() {
     const memoryImg = document.getElementById('memory-img');
     const memoryLock = document.getElementById('memory-lock');
     const txtMemory = document.getElementById('txt-memory');
-    
+
     if (!memoryCard || !guestData) return;
 
-    // 🔥 FORCE THE CARD TO SHOW UP IMMEDIATELY
+    // 1. If no image exists in storage for this user, completely hide the card and stop.
+    // Make sure we check string 'true' or boolean true depending on how CSV/DB parses it
+    const hasImage = guestData.iconExist === true || guestData.iconExist === 'true' || guestData.iconExist === 'TRUE';
+    
+    if (!hasImage || !guestData.icon_filename || guestData.icon_filename === 'NULL') {
+        memoryCard.classList.add('hidden');
+        return; 
+    }
+
+    // 2. We HAVE an image! Show the card on the UI.
     memoryCard.classList.remove('hidden');
 
-    const revealDate = new Date("2026-03-25T18:30:00");
+    const revealDate = new Date("2026-03-25T18:30:00+08:00"); // +08:00 ensures Hong Kong Time
     const now = new Date();
+    
+    // Check if the user is one of the test accounts
+    const isTestAdmin = (guestData.uid === 'admin_003' || guestData.uid === 'guest_000');
 
-    // 1. Time Lock Logic (Bypass for admin_003 testing!)
-    const isTestAdmin = (guestData.uid === 'admin_003'|| guestData.uid === 'guest_000');
-
+    // 3. Time Lock Logic
+    // If we are BEFORE the reveal date AND not a test user, keep it locked.
     if (now < revealDate && !isTestAdmin) {
         memoryLock.classList.remove('hidden'); // Show Padlock
         memoryImg.style.backgroundImage = 'none'; // Keep it grey
@@ -25,64 +36,30 @@ async function setupMemoryLane() {
         return; 
     }
 
-    // 2. We are PAST the reveal date (or you are admin_003)! Let's get the image.
-    let targetFileName = guestData.icon_filename;
-    if (targetFileName) targetFileName = targetFileName.trim();
-    
-    if (!targetFileName || targetFileName === 'NULL' || targetFileName === '') {
-        memoryLock.classList.remove('hidden');
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
-        memoryCard.onclick = null; 
-        return;
-    }
-
+    // 4. Time is up (or test user)! Reveal the image.
     const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
-    const baseUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/`;
+    const targetFileName = guestData.icon_filename.trim();
+    const validUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/${targetFileName}`;
 
-    const checkImage = (url) => new Promise((resolve) => {
-        const img = new Image();
-        const timeout = setTimeout(() => resolve(null), 1500); 
+    memoryLock.classList.add('hidden'); // Hide Padlock
+    memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
+    txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
 
-        img.onload = () => { clearTimeout(timeout); resolve(url); };
-        img.onerror = () => { clearTimeout(timeout); resolve(null); };
-        img.src = url;
-    });
+    // Setup fullscreen popup modal
+    const dialog = document.getElementById('image-modal');
+    const fullImg = document.getElementById('full-memory-img');
+    const closeBtn = document.getElementById('btn-close-image');
 
-    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
-    let validUrl = null;
+    if (dialog && fullImg) {
+        memoryCard.onclick = () => {
+            fullImg.src = validUrl;
+            dialog.showModal();
+        };
 
-    for (const ext of extensions) {
-        const testUrl = `${baseUrl}${targetFileName}${ext}`;
-        validUrl = await checkImage(testUrl);
-        if (validUrl) break;
-    }
-
-    // 3. Apply the Image
-    if (validUrl) {
-        memoryLock.classList.add('hidden'); // Hide Padlock
-        memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
-
-        // Setup fullscreen popup
-        const dialog = document.getElementById('image-modal');
-        const fullImg = document.getElementById('full-memory-img');
-        const closeBtn = document.getElementById('btn-close-image');
-
-        if (dialog && fullImg) {
-            memoryCard.onclick = () => {
-                fullImg.src = validUrl;
-                dialog.showModal();
-            };
-
-            closeBtn.onclick = () => dialog.close();
-            dialog.onclick = (e) => {
-                if (e.target === dialog) dialog.close();
-            };
-        }
-    } else {
-        memoryLock.classList.remove('hidden');
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
-        memoryCard.onclick = null;
+        if (closeBtn) closeBtn.onclick = () => dialog.close();
+        dialog.onclick = (e) => {
+            if (e.target === dialog) dialog.close();
+        };
     }
 }
 
