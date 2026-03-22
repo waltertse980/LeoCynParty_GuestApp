@@ -1,6 +1,6 @@
 {
-  "name": "Leo&Cyn",
-  "short_name": "「我哋今晚繼續？」",
+  "name": "Leo&Cyn - iPad",
+  "short_name": "「今晚繼續？」",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#B32A19",
