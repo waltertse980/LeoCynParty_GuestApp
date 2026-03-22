@@ -52,27 +52,62 @@ async function setupMemoryLane() {
     const isZh = document.body.classList.contains('lang-zh');
     txtMemory.textContent = isZh ? "精選照片" : "carefully selected photo";
 
+    // Setup fullscreen popup
     const dialog = document.getElementById('image-modal');
     const fullImg = document.getElementById('full-memory-img');
     const closeBtn = document.getElementById('btn-close-image');
-    const downloadBtn = document.getElementById('btn-download-image'); // NEW
+    const downloadBtn = document.getElementById('btn-download-image');
 
     if (dialog && fullImg) {
         memoryCard.onclick = () => {
-            fullImg.src = validUrl; 
+            fullImg.src = validUrl;
             
-            // NEW: Apply the download link
             if (downloadBtn) {
-                // By appending ?download=, Supabase forces a direct download
-                downloadBtn.href = `${validUrl}?download=SecondDraft_${targetFileName}`;
-            }
+                // 1. Dynamic Filename Logic (HK Time)
+                const eventStart = new Date("2026-03-28T18:30:00+08:00").getTime();
+                const now = new Date().getTime();
+                const givenName = (guestData.givenname && guestData.givenname !== "NULL") ? guestData.givenname.trim() : "";
+                
+                // Extract the extension from the image URL (e.g., .jpg, .png)
+                const extMatch = validUrl.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
+                const ext = extMatch ? extMatch[1] : "jpg";
+                
+                const prefix = now < eventStart ? "SeeYouAtTheParty" : "ThankYouForComing";
+                const customFileName = `${prefix}${givenName}.${ext}`;
 
+                // 2. Set the fallback download behavior
+                // Forces Supabase to download with our custom filename if the user insists on a file
+                downloadBtn.href = `${validUrl}?download=${encodeURIComponent(customFileName)}`;
+
+                // 3. Intercept the click to attempt "Save to Photos" via native Share Sheet
+                downloadBtn.onclick = async (e) => {
+                    try {
+                        const response = await fetch(validUrl);
+                        const blob = await response.blob();
+                        const file = new File([blob], customFileName, { type: blob.type });
+                        
+                        // If the device supports Web Share (iOS/Android), open the share sheet
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            e.preventDefault(); // Stop the default file download
+                            await navigator.share({
+                                files: [file],
+                                title: 'Memory Lane Photo'
+                            });
+                        }
+                    } catch (err) {
+                        console.log("Web share cancelled or unsupported, falling back to standard file download.", err);
+                        // It will silently fail and let the <a> tag download the file normally
+                    }
+                };
+            }
+            
             dialog.showModal();
         };
-
+        
         if (closeBtn) closeBtn.onclick = () => dialog.close();
         dialog.onclick = (e) => {
-            if (e.target === dialog) dialog.close();
+            // Close if clicking outside the image boundaries
+            if (e.target === dialog || e.target.tagName === 'DIV') dialog.close();
         };
     }
 }
