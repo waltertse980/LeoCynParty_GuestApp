@@ -1,6 +1,85 @@
 // 3. UI Updates after successful login
+async function setupMemoryLane() {
+    const memoryCard = document.getElementById('memory-card');
+    const memoryImg = document.getElementById('memory-img');
+    const memoryLock = document.getElementById('memory-lock');
+    const txtMemory = document.getElementById('txt-memory');
+    
+    if (!memoryCard || !guestData) return;
+
+    const isLockedAdmin = (guestData.uid === 'admin_001' || guestData.uid === 'admin_002');
+    const revealDate = new Date("2026-03-25T18:30:00");
+    const now = new Date();
+
+    if (isLockedAdmin && now < revealDate) {
+        memoryCard.classList.remove('hidden');
+        memoryLock.classList.remove('hidden');
+        txtMemory.textContent = "REVEALS MAR 25, 18:30";
+        return; 
+    }
+
+    // Clean the filename just in case there are invisible spaces
+    let targetFileName = guestData.icon_filename;
+    if (targetFileName) targetFileName = targetFileName.trim();
+    
+    if (!targetFileName || targetFileName === 'NULL' || targetFileName === '') {
+        console.log("No icon_filename found in database for this user.");
+        return;
+    }
+
+    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
+    let validUrl = null;
+
+    // Use Fetch HEAD request (Much faster and more reliable than new Image())
+    for (const ext of extensions) {
+        const testUrl = `./memory/${targetFileName}${ext}`;
+        try {
+            const response = await fetch(testUrl, { method: 'HEAD' });
+            if (response.ok && response.status === 200) {
+                validUrl = testUrl;
+                break; // Stop looking once we find the right one
+            }
+        } catch (e) {
+            // Ignore network errors and continue to the next extension
+        }
+    }
+
+    if (validUrl) {
+        console.log("Successfully found image:", validUrl);
+        
+        // Ensure the card is un-hidden
+        memoryCard.classList.remove('hidden');
+        memoryLock.classList.add('hidden');
+        
+        // Set the background
+        memoryImg.style.backgroundImage = `url('${validUrl}')`;
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
+
+        // Setup the popup click logic
+        const dialog = document.getElementById('image-modal');
+        const fullImg = document.getElementById('full-memory-img');
+        const closeBtn = document.getElementById('btn-close-image');
+
+        if (dialog && fullImg) {
+            memoryCard.onclick = () => {
+                fullImg.src = validUrl;
+                dialog.showModal();
+            };
+
+            closeBtn.onclick = () => dialog.close();
+            dialog.onclick = (e) => {
+                if (e.target === dialog) dialog.close();
+            };
+        }
+    } else {
+        console.log("Checked all extensions, but no image was found in the /memory/ folder for:", targetFileName);
+    }
+}
+
 async function populateUIWithGuestData() {
     if (!guestData) return;
+
+    setupMemoryLane();
 
     // Submission of Quick Survey to Database:
     const btnSubmitSurvey = document.getElementById('btn-submit-survey');
@@ -479,11 +558,43 @@ function toggleNavTabs(isPostCheckin) {
 }
 
 function nav(tabId) {
+    // 1. Hide all tabs and remove active state from all nav buttons
     document.querySelectorAll('.iphone-container > div[id^="tab-"]').forEach(el => el.classList.add('hidden-tab'));
-    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    // 2. Show the selected tab and make its nav button active
+    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
     document.getElementById('nav-' + tabId).classList.add('active');
+
+    // 3. --- NEW LOGIC: Stop Camera if leaving the Camera tab ---
+    // If we are NOT navigating to the camera tab, kill any active video streams
+    if (tabId !== 'camera') {
+        if (window.currentStream) {
+            // Stop all hardware tracks (turns off the green light)
+            window.currentStream.getTracks().forEach(track => track.stop());
+            window.currentStream = null;
+            
+            // Reset the UI elements
+            const videoFeed = document.getElementById('camera-feed');
+            const scanAnimation = document.getElementById('scan-animation');
+            const cameraPlaceholder = document.getElementById('camera-placeholder');
+            const btnOpenCamera = document.getElementById('btn-open-camera');
+            
+            if (videoFeed) {
+                videoFeed.srcObject = null;
+                videoFeed.classList.add('hidden');
+            }
+            if (scanAnimation) scanAnimation.classList.add('hidden');
+            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
+            
+            if (btnOpenCamera) {
+                btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? "打開相機" : "Open Camera";
+                btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    }
 }
+
 
 const targetDate = new Date(2026, 2, 28, 18, 30, 0); 
 
