@@ -8,6 +8,9 @@ async function setupMemoryLane() {
     
     if (!memoryCard || !guestData) return;
 
+    // 🔥 FORCE THE CARD TO SHOW UP IMMEDIATELY, NO MATTER WHAT!
+    memoryCard.classList.remove('hidden');
+
     const revealDate = new Date("2026-03-25T18:30:00");
     const now = new Date();
 
@@ -28,6 +31,7 @@ async function setupMemoryLane() {
         // No image assigned to user, show pending state
         memoryLock.classList.remove('hidden');
         txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
+        memoryCard.onclick = null; // Disable clicking
         return;
     }
 
@@ -58,7 +62,7 @@ async function setupMemoryLane() {
     if (validUrl) {
         memoryLock.classList.add('hidden'); // Hide Padlock
         memoryImg.style.backgroundImage = `url('${validUrl}')`; // Show Image
-        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "為你精選嘅相" : "carefully selected photo";
+        txtMemory.textContent = document.body.classList.contains('lang-zh') ? "精選照片" : "carefully selected photo";
 
         // Setup fullscreen popup
         const dialog = document.getElementById('image-modal');
@@ -80,9 +84,9 @@ async function setupMemoryLane() {
         // File wasn't found on Supabase
         memoryLock.classList.remove('hidden');
         txtMemory.textContent = document.body.classList.contains('lang-zh') ? "圖片未準備好" : "image pending";
+        memoryCard.onclick = null; // Disable clicking
     }
 }
-
 
 async function populateUIWithGuestData() {
     if (!guestData) return;
