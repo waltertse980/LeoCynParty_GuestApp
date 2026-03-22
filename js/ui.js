@@ -19,7 +19,9 @@ async function setupMemoryLane() {
 
     const revealDate = new Date("2026-03-25T18:30:00+08:00");
     const now = new Date();
-    const isTestAdmin = (guestData.uid === 'admin_003' || guestData.uid === 'guest_000');
+    const isTestAdmin = (guestData.uid === 'admin_003' 
+    //    || guestData.uid === 'guest_000'
+    );
 
     // 3. Time Logic
     if (now < revealDate && !isTestAdmin) {
