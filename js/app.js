@@ -12,10 +12,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         } else {
             // First time: Play the animation
             if (splashScreen && splashImage) {
-                // 1. Fade IN the image (takes 2 seconds because of Tailwind CSS duration-[2000ms])
+                // 1. Fade IN the image 
                 setTimeout(() => {
                     splashImage.style.opacity = '1';
-                }, 100); // Tiny delay to ensure browser paints the initial state
+                }, 100); 
 
                 // 2. Wait 2 seconds (for fade in), then hold for 1 second, then Fade OUT everything
                 setTimeout(() => {
@@ -45,7 +45,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 1. Run initial login check
     // If they are logged in, this will show the app. If not, it shows the login screen.
-    checkExistingLogin();
+    if (typeof checkExistingLogin === 'function') {
+        await checkExistingLogin(); // <--- Wait for auth check to finish
+    } else {
+        // Failsafe: if checkExistingLogin doesn't exist, just show login screen
+        document.getElementById('login-screen').classList.remove('hidden');
+    }
+
+    // 🔥 GUARANTEE THE APP UNLOCKS 🔥
+    // This removes the "booting" class that hides everything in CSS
+    document.body.classList.remove('booting');
 
     // 2. Set up Login button listeners
     const input = document.getElementById('auth-key-input');
@@ -59,10 +68,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 3. Set up Modal Logic (moved from index.html)
+    // 3. Set up Modal Logic
     const openTriggers = document.querySelectorAll('[data-modal-target]');
     const closeTriggers = document.querySelectorAll('[data-modal-close]');
-    const allModals = document.querySelectorAll('[id$="-modal"]');
 
     openTriggers.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -103,25 +111,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (btnOpenCamera) {
         btnOpenCamera.addEventListener('click', async () => {
-            // If camera is already running, do nothing (or change this to stop the camera)
             if (window.currentStream) return;
-
             try {
-                // 1. Request Camera Access from the browser (preferring the back camera)
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment" } 
                 });
                 
-                // 2. If allowed, connect the stream to the <video> element
                 window.currentStream = stream;
                 videoFeed.srcObject = stream;
                 
-                // 3. Update the UI to show the video and hide the placeholder
                 videoFeed.classList.remove('hidden');
                 scanAnimation.classList.remove('hidden');
                 cameraPlaceholder.classList.add('hidden');
                 
-                // Change button text to indicate it's scanning
                 btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? '掃描中...' : 'Scanning...';
                 btnOpenCamera.classList.add('opacity-50', 'cursor-not-allowed');
                 
@@ -147,7 +149,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // Fallback to 'unknown_user' if guestData isn't loaded
             const currentUid = (typeof guestData !== 'undefined' && guestData && guestData.uid) ? guestData.uid : 'unknown_user';
             
             const n = new Date();
@@ -160,7 +161,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             fbBtn.innerHTML = '<span class="text-sm font-bold">Sending...</span>';
 
             try {
-                // FIXED: Using 'db' directly instead of 'window.db'
                 const { error } = await db.from('feedback').insert([feedbackPayload]);
                 
                 if (error) {
@@ -171,22 +171,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return; 
                 }
                 
-                // Clean up and close modal
                 fbTextEl.value = '';
                 document.getElementById('feedback-modal').classList.remove('flex');
                 document.getElementById('feedback-modal').classList.add('hidden');
-                
-                // Open Settings Modal again
                 document.getElementById('settings-modal').classList.remove('hidden');
                 document.getElementById('settings-modal').classList.add('flex');
                 
-                // Custom GUI Toast Notification instead of alert()
                 const toast = document.createElement('div');
                 toast.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-green-100 border-2 border-green-600 text-green-800 px-4 py-2 rounded-lg shadow-xl z-[100] font-bold text-sm transition-opacity duration-500';
                 toast.innerText = 'Thank you! Your feedback has been sent.';
                 document.body.appendChild(toast);
                 
-                // Fade out and remove after 3 seconds
                 setTimeout(() => {
                     toast.style.opacity = '0';
                     setTimeout(() => toast.remove(), 500);
