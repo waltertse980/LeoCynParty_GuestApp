@@ -1,52 +1,56 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // --- SPLASH SCREEN LOGIC ---
+document.addEventListener('DOMContentLoaded', async function() {
+    // --- SPLASH SCREEN LOGIC (Wrapped in a Promise so we can await it) ---
     const splashScreen = document.getElementById('splash-screen');
     const splashImage = document.getElementById('splash-image');
 
-    // Check if we already played the splash screen this session
-    if (sessionStorage.getItem('splashPlayed')) {
-        // Already played: hide it instantly so they can use the app
-        if (splashScreen) splashScreen.style.display = 'none';
-    } else {
-        // First time: Play the animation
-        if (splashScreen && splashImage) {
-            // 1. Fade IN the image (takes 2 seconds because of Tailwind CSS duration-[2000ms])
-            setTimeout(() => {
-                splashImage.style.opacity = '1';
-            }, 100); // Tiny delay to ensure browser paints the initial state
+    const playSplashScreen = new Promise((resolve) => {
+        // Check if we already played the splash screen this session
+        if (sessionStorage.getItem('splashPlayed')) {
+            // Already played: hide it instantly so they can use the app
+            if (splashScreen) splashScreen.style.display = 'none';
+            resolve(); // Immediately move on to app logic
+        } else {
+            // First time: Play the animation
+            if (splashScreen && splashImage) {
+                // 1. Fade IN the image (takes 2 seconds because of Tailwind CSS duration-[2000ms])
+                setTimeout(() => {
+                    splashImage.style.opacity = '1';
+                }, 100); // Tiny delay to ensure browser paints the initial state
 
-            // 2. Wait 2 seconds (for fade in), then hold for 1 second, then Fade OUT everything
-            setTimeout(() => {
-                splashScreen.style.opacity = '0';
-            }, 3000); 
+                // 2. Wait 2 seconds (for fade in), then hold for 1 second, then Fade OUT everything
+                setTimeout(() => {
+                    splashScreen.style.opacity = '0';
+                }, 3000); 
 
-            // 3. Wait for the 2-second fade out to finish, then delete it to reveal the app
-            setTimeout(() => {
-                splashScreen.style.display = 'none';
-                // Mark it as played for this session
-                sessionStorage.setItem('splashPlayed', 'true');
-            }, 5000); 
+                // 3. Wait for the 2-second fade out to finish, then delete it to reveal the app
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    // Mark it as played for this session
+                    sessionStorage.setItem('splashPlayed', 'true');
+                    resolve(); // Animation complete, move on to app logic
+                }, 5000); 
+            } else {
+                resolve(); // Failsafe if HTML elements are missing
+            }
         }
-    }
+    });
+
+    // 🛑 WAIT FOR SPLASH SCREEN TO FINISH BEFORE DOING ANYTHING ELSE 🛑
+    await playSplashScreen;
 
     // Initial Language Detect
-    const userLang = (navigator.language || navigator.userLanguage).toLowerCase();
+    const userLang = (navigator.language || navigator.userLanguage || "").toLowerCase();
     if (userLang.includes('en')) setLanguage('en');
     else setLanguage('zh');
 
     // 1. Run initial login check
+    // If they are logged in, this will show the app. If not, it shows the login screen.
     checkExistingLogin();
 
     // 2. Set up Login button listeners
     const input = document.getElementById('auth-key-input');
     const btn = document.getElementById('auth-submit-btn');
     const errorEl = document.getElementById('auth-error');
-    
-
-    btn.addEventListener('click', attemptLogin);
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') attemptLogin();
-    });
     
     if (btn && input) {
         btn.addEventListener('click', attemptLogin);
@@ -86,20 +90,21 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCountdown();
     
     // 5. Initial UI setup
-    generateArrivalOptions();
-
+    if (typeof generateArrivalOptions === 'function') {
+        generateArrivalOptions();
+    }
 
     // --- CAMERA LOGIC ---
     const btnOpenCamera = document.getElementById('btn-open-camera');
     const videoFeed = document.getElementById('camera-feed');
     const scanAnimation = document.getElementById('scan-animation');
     const cameraPlaceholder = document.getElementById('camera-placeholder');
-    let currentStream = null;
+    window.currentStream = null;
 
     if (btnOpenCamera) {
         btnOpenCamera.addEventListener('click', async () => {
             // If camera is already running, do nothing (or change this to stop the camera)
-            if (currentStream) return;
+            if (window.currentStream) return;
 
             try {
                 // 1. Request Camera Access from the browser (preferring the back camera)
@@ -108,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // 2. If allowed, connect the stream to the <video> element
-                currentStream = stream;
+                window.currentStream = stream;
                 videoFeed.srcObject = stream;
                 
                 // 3. Update the UI to show the video and hide the placeholder
@@ -117,12 +122,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraPlaceholder.classList.add('hidden');
                 
                 // Change button text to indicate it's scanning
-                btnOpenCamera.textContent = "Scanning...";
+                btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? '掃描中...' : 'Scanning...';
                 btnOpenCamera.classList.add('opacity-50', 'cursor-not-allowed');
                 
-                // Note: Actual QR code reading requires an external library like html5-qrcode.
-                // This code just opens the native camera feed.
-
             } catch (err) {
                 console.error("Camera access denied or failed:", err);
                 alert("Please allow camera access in your browser settings to scan QR codes.");
@@ -191,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 3000);
                 
             } catch (err) {
-                // FIXED: Actually print the error to the console!
                 console.error("JavaScript caught an error during insert:", err);
                 alert("Something went wrong. Check console.");
             } finally {
