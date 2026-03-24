@@ -1,5 +1,4 @@
 let currentUserId = null;
-var window.guestData = null; // Store the full row for the logged-in guest
 
 // 1. Fetch and merge data from Supabase
 async function loadGuestsFromCSV() {
