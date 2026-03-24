@@ -1,26 +1,28 @@
+// --- LOGIN LOGIC ---
+let guestData = null; // Global variable to hold the user's data
+
 async function setLoggedIn(userId, authKey) {
-    currentUserId = userId;
     try {
         localStorage.setItem('guestAppUserId', userId);
         localStorage.setItem('guestAppAuthKey', authKey);
     } catch (e) {
-        console.error(e);
-    }
-
-    if (!guestData.creation_time || guestData.creation_time === "NULL") {
-        const now = new Date().toISOString(); 
-        console.log(`DB Update: Setting creation_time=${now} for UID=${guestData.uid} in status table`);
-        // SUPABASE:
-        await db.from('status').update({ creation_time: now }).eq('uid', guestData.uid);
-        guestData.creation_time = now;
+        console.error("Failed to save auth to localStorage", e);
     }
 
     // 1. Hide Login, Show App
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app-container').classList.remove('hidden');
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (appContainer) appContainer.classList.remove('hidden');
 
-    // 2. Populate data and run UI logic
-    populateUIWithGuestData();
+    // 2. Remove booting class to reveal the screen
+    document.body.classList.remove('booting');
+
+    // 3. Populate data and run UI logic (safely check if function exists)
+    if (typeof populateUIWithGuestData === 'function') {
+        await populateUIWithGuestData();
+    }
 }
 
 async function checkExistingLogin() {
@@ -28,48 +30,83 @@ async function checkExistingLogin() {
     try {
         storedAuthKey = localStorage.getItem('guestAppAuthKey');
     } catch (e) {
-        console.error(e);
+        console.error("Error reading localStorage", e);
     }
 
     if (storedAuthKey) {
-        const userId = await deriveUserIdFromKey(storedAuthKey);
-        if (userId) {
-            setLoggedIn(userId, storedAuthKey);
-            updateStatusCard();
-            document.body.classList.remove('booting');
-            return;
+        const cleanKey = storedAuthKey.trim().toUpperCase();
+        try {
+            // Verify against database
+            guestData = await loginWithKey(cleanKey);
+            
+            if (guestData && guestData.uid) {
+                await setLoggedIn(guestData.uid, cleanKey);
+                if (typeof updateStatusCard === 'function') updateStatusCard();
+                return; // Successfully logged in
+            }
+        } catch (err) {
+            console.error("Existing login check failed:", err);
+            // Fall through to show login screen
         }
     }
 
-    document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('app-container').classList.add('hidden');
+    // If we get here, no valid login exists. Show the login screen.
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    
+    if (loginScreen) loginScreen.classList.remove('hidden');
+    if (appContainer) appContainer.classList.add('hidden');
+    
+    // Crucial: remove the booting lock so they can actually see the login screen!
     document.body.classList.remove('booting');
 }
 
 async function attemptLogin() {
-    console.log("Login button clicked!");
+    console.log('Login button clicked!');
     const input = document.getElementById('auth-key-input');
     const errorEl = document.getElementById('auth-error');
     
+    if (!input) return;
+    
     // SAFEGUARD: Remove hidden iPhone spaces and force UPPERCASE
     const key = input.value.trim().toUpperCase();
+    
+    if (!key) {
+        if (errorEl) errorEl.classList.remove('hidden');
+        return;
+    }
 
-    console.log("Trying to login with key:", key);
+    console.log('Trying to login with key:', key);
+
     try {
-        const userId = await deriveUserIdFromKey(key);
-        console.log("Derived User ID:", userId);
+        // Change button to show loading state
+        const btn = document.getElementById('auth-submit-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        guestData = await loginWithKey(key);
+
+        if (!guestData || !guestData.uid) {
+            throw new Error("Invalid User Data");
+        }
+
+        console.log('Login successful! Setting UI...');
+        if (errorEl) errorEl.classList.add('hidden');
         
-        if (!userId) {
-            console.log("User ID not found, showing error.");
+        await setLoggedIn(guestData.uid, key);
+        if (typeof updateStatusCard === 'function') updateStatusCard();
+
+    } catch (err) {
+        console.error('Something went wrong during login:', err);
+        if (errorEl) {
+            errorEl.textContent = 'Invalid key. Please check with your host.';
             errorEl.classList.remove('hidden');
-            return;
         }
         
-        console.log("Login successful! Setting UI...");
-        errorEl.classList.add('hidden');
-        setLoggedIn(userId, key);
-        
-    } catch (err) {
-        console.error("Something went wrong during login:", err);
+        // Restore button
+        const btn = document.getElementById('auth-submit-btn');
+        btn.innerHTML = 'Enter';
+        btn.disabled = false;
     }
 }

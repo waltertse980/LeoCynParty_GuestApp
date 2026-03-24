@@ -1,41 +1,37 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // 🛑 GLOBAL FAILSAFE: If the app is still booting after 5 seconds, force it open
+    setTimeout(() => {
+        if (document.body.classList.contains('booting')) {
+            console.warn("Failsafe triggered: forcefully removing booting class.");
+            document.body.classList.remove('booting');
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen) loginScreen.classList.remove('hidden');
+        }
+    }, 5000);
+
     // --- SPLASH SCREEN LOGIC (Wrapped in a Promise so we can await it) ---
     const splashScreen = document.getElementById('splash-screen');
     const splashImage = document.getElementById('splash-image');
 
     const playSplashScreen = new Promise((resolve) => {
-        // Check if we already played the splash screen this session
         if (sessionStorage.getItem('splashPlayed')) {
-            // Already played: hide it instantly so they can use the app
             if (splashScreen) splashScreen.style.display = 'none';
-            resolve(); // Immediately move on to app logic
+            resolve();
         } else {
-            // First time: Play the animation
             if (splashScreen && splashImage) {
-                // 1. Fade IN the image 
-                setTimeout(() => {
-                    splashImage.style.opacity = '1';
-                }, 100); 
-
-                // 2. Wait 2 seconds (for fade in), then hold for 1 second, then Fade OUT everything
-                setTimeout(() => {
-                    splashScreen.style.opacity = '0';
-                }, 3000); 
-
-                // 3. Wait for the 2-second fade out to finish, then delete it to reveal the app
+                setTimeout(() => { splashImage.style.opacity = '1'; }, 100); 
+                setTimeout(() => { splashScreen.style.opacity = '0'; }, 3000); 
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
-                    // Mark it as played for this session
                     sessionStorage.setItem('splashPlayed', 'true');
-                    resolve(); // Animation complete, move on to app logic
+                    resolve(); 
                 }, 5000); 
             } else {
-                resolve(); // Failsafe if HTML elements are missing
+                resolve(); 
             }
         }
     });
 
-    // 🛑 WAIT FOR SPLASH SCREEN TO FINISH BEFORE DOING ANYTHING ELSE 🛑
     await playSplashScreen;
 
     // Initial Language Detect
@@ -43,18 +39,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (userLang.includes('en')) setLanguage('en');
     else setLanguage('zh');
 
-    // 1. Run initial login check
-    // If they are logged in, this will show the app. If not, it shows the login screen.
-    if (typeof checkExistingLogin === 'function') {
-        await checkExistingLogin(); // <--- Wait for auth check to finish
-    } else {
-        // Failsafe: if checkExistingLogin doesn't exist, just show login screen
-        document.getElementById('login-screen').classList.remove('hidden');
+    // 1. Run initial login check SAFELY
+    try {
+        if (typeof checkExistingLogin === 'function') {
+            await checkExistingLogin(); // <--- Wait for auth check to finish
+        } else {
+            // Failsafe: if checkExistingLogin doesn't exist
+            document.getElementById('login-screen').classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error("Critical error during login check:", err);
+        // If the database fails, fallback to showing the login screen
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) loginScreen.classList.remove('hidden');
+    } finally {
+        // 🔥 THIS WILL NOW ALWAYS RUN NO MATTER WHAT 🔥
+        document.body.classList.remove('booting');
     }
-
-    // 🔥 GUARANTEE THE APP UNLOCKS 🔥
-    // This removes the "booting" class that hides everything in CSS
-    document.body.classList.remove('booting');
 
     // 2. Set up Login button listeners
     const input = document.getElementById('auth-key-input');
