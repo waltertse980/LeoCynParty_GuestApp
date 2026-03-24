@@ -1,4 +1,5 @@
 let currentUserId = null;
+let guestData = null; // Store the full row for the logged-in guest
 
 // 1. Fetch and merge data from Supabase
 async function loadGuestsFromCSV() {
@@ -63,7 +64,7 @@ async function deriveUserIdFromKey(key) {
 
         const uid = profileMatch.uid;
 
-        // 2. Fetch all their unified data (so window.guestData is fully populated for ui.js)
+        // 2. Fetch all their unified data (so guestData is fully populated for ui.js)
         const [
             { data: profileData },
             { data: statusData },
@@ -74,15 +75,15 @@ async function deriveUserIdFromKey(key) {
             db.from('game').select('*').eq('uid', uid).maybeSingle()
         ]);
 
-        // Merge it all into the global window.guestData variable
-        window.guestData = { 
+        // Merge it all into the global guestData variable
+        guestData = { 
             ...(profileData || {}), 
             ...(statusData || {}), 
             ...(gameData || {}) 
         };
 
         // Apply local storage patch
-        window.guestData = applyPatchToGuestRow(window.guestData);
+        guestData = applyPatchToGuestRow(guestData);
 
         return uid;
 

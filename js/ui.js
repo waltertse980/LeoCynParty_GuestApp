@@ -1,4 +1,4 @@
-const guestData = window.guestData;
+// 3. UI Updates after successful login
 
 async function setupMemoryLane() {
     const memoryCard = document.getElementById('memory-card');
@@ -566,152 +566,73 @@ function updateHomeTabLayout(isCheckedIn) {
     }
 }
 
-function toggleNavTabs(isCheckedIn) {
-    if (!guestData || !guestData.uid) return;
-    
-    // Run the role-based routing
-    setRBACNav(guestData.uid, isCheckedIn);
+function toggleNavTabs(isPostCheckin) {
+    const navMissions = document.getElementById("nav-missions");
+    const navTeam = document.getElementById("nav-team");
+    const navNotice = document.getElementById("nav-notice");
+    const navCamera = document.getElementById("nav-camera");
 
-    // Safety fallback: If they are looking at a tab that is now hidden, force them to Home
-    const currentActive = document.querySelector('.nav-item.active');
-    if (currentActive && currentActive.classList.contains('hidden')) {
-        nav('home');
+    if (isPostCheckin) {
+        if (navMissions) navMissions.classList.remove("hidden");
+        if (navTeam) navTeam.classList.remove("hidden");
+        if (navNotice) navNotice.classList.add("hidden");
+        if (navCamera) navCamera.classList.add("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-notice' || currentActive.id === 'nav-camera')) {
+            nav('home');
+        }                
+    } else {
+        if (navMissions) navMissions.classList.add("hidden");
+        if (navTeam) navTeam.classList.add("hidden");
+        if (navNotice) navNotice.classList.remove("hidden");
+        if (navCamera) navCamera.classList.remove("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-missions' || currentActive.id === 'nav-team')) {
+            nav('home');
+        }                
     }
 }
 
 function nav(tabId) {
-    // 1. Hide all tabs and remove active state from ALL nav buttons
-    document.querySelectorAll('[id^="tab-"]').forEach(el => {
-        el.classList.add('hidden-tab');
-    });
+    // 1. Hide all tabs and remove active state from all nav buttons
+    document.querySelectorAll('.iphone-container > div[id^="tab-"]').forEach(el => el.classList.add('hidden-tab'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     
-    // Select all nav items and remove active class
-    document.querySelectorAll('.nav-item').forEach(el => {
-        el.classList.remove('active');
-        // Reset text color for inactive state (we use specific colors for admin tabs)
-        el.classList.remove('text-black');
-        el.classList.add('text-gray-400');
-    });
+    // 2. Show the selected tab and make its nav button active
+    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
+    document.getElementById('nav-' + tabId).classList.add('active');
 
-    // 2. Show the selected tab
-    const selectedTab = document.getElementById('tab-' + tabId);
-    if (selectedTab) {
-        selectedTab.classList.remove('hidden-tab');
-    }
-
-    // 3. Make the selected nav button active
-    const selectedNav = document.getElementById('nav-' + tabId);
-    if (selectedNav) {
-        selectedNav.classList.add('active');
-        selectedNav.classList.remove('text-gray-400');
-        
-        // Restore specific colors based on the active tab
-        if (tabId === 'broadcast') selectedNav.classList.add('text-var--red');
-        else if (tabId === 'squad-dashboard') selectedNav.classList.add('text-blue-600');
-        else if (tabId === 'master-dashboard') selectedNav.classList.add('text-purple-600');
-        else if (tabId === 'mission-approval') selectedNav.classList.add('text-green-600');
-        else selectedNav.classList.add('text-black'); // Default active color
-    }
-
-    // 4. --- Stop Camera if leaving the Camera tab ---
+    // 3. --- NEW LOGIC: Stop Camera if leaving the Camera tab ---
+    // If we are NOT navigating to the camera tab, kill any active video streams
     if (tabId !== 'camera') {
         if (window.currentStream) {
+            // Stop all hardware tracks (turns off the green light)
             window.currentStream.getTracks().forEach(track => track.stop());
             window.currentStream = null;
-        }
-        const videoFeed = document.getElementById('camera-feed');
-        const scanAnimation = document.getElementById('scan-animation');
-        const cameraPlaceholder = document.getElementById('camera-placeholder');
-        const btnOpenCamera = document.getElementById('btn-open-camera');
-
-        if (videoFeed) {
-            videoFeed.srcObject = null;
-            videoFeed.classList.add('hidden');
-        }
-        if (scanAnimation) scanAnimation.classList.add('hidden');
-        if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
-        if (btnOpenCamera) {
-            btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? '開啟相機' : 'Open Camera';
-            btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    }
-}
-
-function setRBACNav(uid, isCheckedIn) {
-    // 1. Get all nav elements
-    const nNotice = document.getElementById('nav-notice');
-    const nCamera = document.getElementById('nav-camera');
-    const nMissions = document.getElementById('nav-missions');
-    const nTeam = document.getElementById('nav-team'); // 'Squad' Tab
-    const nProfile = document.getElementById('nav-profile');
-    
-    // Admin elements
-    const nBroadcast = document.getElementById('nav-broadcast');
-    const nSquadDash = document.getElementById('nav-squad-dashboard');
-    const nMasterDash = document.getElementById('nav-master-dashboard');
-    const nApproval = document.getElementById('nav-mission-approval');
-
-    // Helper function to hide all restricted tabs (Home is always visible so we don't hide it)
-    const hideAllRestricted = () => {
-        [nNotice, nCamera, nMissions, nTeam, nProfile, nBroadcast, nSquadDash, nMasterDash, nApproval].forEach(el => {
-            if(el) el.classList.add('hidden');
-        });
-    };
-
-    hideAllRestricted(); // Reset to blank slate
-
-    // Define roles
-    const coreAdmins = ['admin_001', 'admin_002', 'admin_010'];
-    const isCoreAdmin = coreAdmins.includes(uid);
-    const isOpsAdmin = uid.startsWith('admin_00') && !isCoreAdmin; // Admins 003-009
-
-    // --- ROLE 1: CORE ADMINS ---
-    if (isCoreAdmin) {
-        if (!isCheckedIn) {
-            // Before Event
-            if(nNotice) nNotice.classList.remove('hidden');
-            if(nCamera) nCamera.classList.remove('hidden');
-            if(nMasterDash) nMasterDash.classList.remove('hidden');
-        } else {
-            // From Event Start
-            if(nBroadcast) nBroadcast.classList.remove('hidden');
-            if(nSquadDash) nSquadDash.classList.remove('hidden');
-            if(nMasterDash) nMasterDash.classList.remove('hidden');
-        }
-        return;
-    }
-
-    // --- ROLE 2: OPS ADMINS ---
-    if (isOpsAdmin) {
-        if (!isCheckedIn) {
-            // Before Event
-            if(nNotice) nNotice.classList.remove('hidden');
-            if(nCamera) nCamera.classList.remove('hidden');
-            if(nProfile) nProfile.classList.remove('hidden');
-        } else {
-            // From Event Start
-            if(nApproval) nApproval.classList.remove('hidden');
-            if(nSquadDash) nSquadDash.classList.remove('hidden');
-            if(nProfile) nProfile.classList.remove('hidden');
-        }
-        return;
-    }
-
-    // --- ROLE 3: GUESTS ---
-    if (uid.startsWith('guest')) {
-        if (!isCheckedIn) {
-            // Before Event
-            if(nNotice) nNotice.classList.remove('hidden');
-            if(nCamera) nCamera.classList.remove('hidden');
-            if(nProfile) nProfile.classList.remove('hidden');
-        } else {
-            // From Event Start
-            if(nMissions) nMissions.classList.remove('hidden');
-            if(nTeam) nTeam.classList.remove('hidden');
-            if(nProfile) nProfile.classList.remove('hidden');
+            
+            // Reset the UI elements
+            const videoFeed = document.getElementById('camera-feed');
+            const scanAnimation = document.getElementById('scan-animation');
+            const cameraPlaceholder = document.getElementById('camera-placeholder');
+            const btnOpenCamera = document.getElementById('btn-open-camera');
+            
+            if (videoFeed) {
+                videoFeed.srcObject = null;
+                videoFeed.classList.add('hidden');
+            }
+            if (scanAnimation) scanAnimation.classList.add('hidden');
+            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
+            
+            if (btnOpenCamera) {
+                btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? "打開相機" : "Open Camera";
+                btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
     }
 }
+
 
 const targetDate = new Date(2026, 2, 28, 18, 30, 0); 
 
