@@ -34,8 +34,25 @@ async function setLoggedIn(userId, authKey) {
 
     document.body.classList.remove('booting');
 
-    if (typeof populateUIWithGuestData === 'function') {
-        await populateUIWithGuestData();
+    // ADD THIS DEBUG + ERROR HANDLING
+    console.log('About to call populateUIWithGuestData with:', window.guestData);
+    
+    try {
+        if (typeof populateUIWithGuestData === 'function') {
+            console.log('populateUIWithGuestData exists, calling it...');
+            await populateUIWithGuestData();
+            console.log('populateUIWithGuestData completed successfully');
+        } else {
+            console.error('populateUIWithGuestData function NOT FOUND');
+        }
+        
+        if (typeof updateStatusCard === 'function') {
+            console.log('Calling updateStatusCard...');
+            updateStatusCard();
+        }
+    } catch (uiError) {
+        console.error('CRASH in populateUIWithGuestData:', uiError);
+        console.log('Stack trace:', uiError.stack);
     }
 }
 
