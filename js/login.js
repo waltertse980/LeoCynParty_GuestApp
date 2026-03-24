@@ -41,8 +41,8 @@ async function setLoggedIn(userId, authKey) {
         console.log('Hidden login screen');
     }
     if (appContainer) {
-        appContainer.classList.remove('hidden');
-        console.log('Showed app container');
+        appContainer.classList.remove('hidden', 'hidden-tab');
+        console.log('Removed hidden AND hidden-tab from appContainer');
     }
 
     document.body.classList.remove('booting');
