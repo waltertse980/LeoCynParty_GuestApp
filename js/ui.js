@@ -581,7 +581,7 @@ function toggleNavTabs(isCheckedIn) {
 
 function nav(tabId) {
     // 1. Hide all tabs and remove active state from ALL nav buttons
-    document.querySelectorAll('.iphone-container').forEach(el => {
+    document.querySelectorAll('[id^="tab-"]').forEach(el => {
         el.classList.add('hidden-tab');
     });
     
