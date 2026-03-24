@@ -1,5 +1,5 @@
 // --- LOGIN LOGIC ---
-let guestData = null; // Global variable to hold the user's data
+var guestData = null; // Global variable to hold the user's data
 
 async function setLoggedIn(userId, authKey) {
     try {
