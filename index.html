@@ -751,7 +751,7 @@
         // 2. The Key-Only Login Function (Database Lookup)
         async function loginWithKey(key) {
             // Check if the key exists in your new 'profile' table
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('profile')
                 .select('*')
                 .eq('uid', key)
