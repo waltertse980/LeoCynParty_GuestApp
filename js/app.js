@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const currentUid = (typeof guestData !== 'undefined' && guestData && guestData.uid) ? guestData.uid : 'unknown_user';
+            const currentUid = (typeof window.guestData !== 'undefined' && window.guestData && window.guestData.uid) ? window.guestData.uid : 'unknown_user';
             
             const n = new Date();
             const pad = num => String(num).padStart(2, '0');

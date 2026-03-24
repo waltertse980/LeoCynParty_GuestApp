@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            if (typeof guestData === 'undefined' || !guestData || !guestData.uid) {
+            if (typeof window.guestData === 'undefined' || !window.guestData || !window.guestData.uid) {
                 console.error("Guest data is missing from scope!");
                 return;
             }
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const currentUid = guestData.uid;
+            const currentUid = window.guestData.uid;
             const now = new Date().toISOString();
             
             // Clean the QR data
@@ -132,8 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (receptionErr) throw new Error("Reception table error: " + receptionErr.message);
 
             // 8. Update local guest memory (FIXED COLUMN NAMES)
-            guestData.checkin_time = now;
-            guestData.station_qr = cleanQR;
+            window.guestData.checkin_time = now;
+            window.guestData.station_qr = cleanQR;
             
             // 9. Update UI 
             if (typeof updateStatusCard === 'function') updateStatusCard();

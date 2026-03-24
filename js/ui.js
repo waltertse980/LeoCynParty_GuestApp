@@ -1,4 +1,4 @@
-// 3. UI Updates after successful login
+const guestData = window.guestData;
 
 async function setupMemoryLane() {
     const memoryCard = document.getElementById('memory-card');
@@ -115,8 +115,7 @@ async function setupMemoryLane() {
 }
 
 async function populateUIWithGuestData() {
-    if (!window.guestData) return;
-    const guestData = window.guestData;
+    if (!guestData) return;
 
     setupMemoryLane();
 
