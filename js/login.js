@@ -71,12 +71,28 @@ async function setLoggedIn(userId, authKey) {
     
     console.log('setLoggedIn COMPLETED');
 
-    // Force show Home tab after login
-    if (typeof navhome === 'function') {
-        console.log('Calling navhome() to show first tab...');
+    // Force show Home tab - TRY BOTH POSSIBLE FUNCTION NAMES
+    if (typeof nav === 'function') {
+        console.log('Calling nav("home")...');
+        nav('home');
+    } else if (typeof navhome === 'function') {
+        console.log('Calling navhome()...');
         navhome();
     } else {
-        console.error('navhome function not found - tabs stay hidden!');
+        console.error('NO NAV FUNCTION FOUND - manually showing home tab');
+        
+        // EMERGENCY MANUAL FIX
+        const homeTab = document.getElementById('tab-home');
+        const homeNav = document.getElementById('nav-home');
+        
+        if (homeTab) {
+            homeTab.classList.remove('hidden-tab');
+            console.log('Manually showed tab-home');
+        }
+        if (homeNav) {
+            homeNav.classList.add('active');
+            console.log('Manually activated nav-home');
+        }
     }
 }
 
