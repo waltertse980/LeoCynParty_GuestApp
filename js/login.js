@@ -19,42 +19,59 @@ async function loginWithKey(key) {
 }
 
 async function setLoggedIn(userId, authKey) {
+    console.log('setLoggedIn called with userId:', userId, 'authKey:', authKey);
+    
+    // Save to localStorage
     try {
         localStorage.setItem('guestAppUserId', userId);
         localStorage.setItem('guestAppAuthKey', authKey);
+        console.log('localStorage saved');
     } catch (e) {
-        console.error("Failed to save auth to localStorage", e);
+        console.error("localStorage failed:", e);
     }
 
+    // Force UI switch (this will un-black the screen)
     const loginScreen = document.getElementById('login-screen');
     const appContainer = document.getElementById('app-container');
     
-    if (loginScreen) loginScreen.classList.add('hidden');
-    if (appContainer) appContainer.classList.remove('hidden');
+    console.log('loginScreen:', loginScreen, 'appContainer:', appContainer);
+    
+    if (loginScreen) {
+        loginScreen.classList.add('hidden');
+        console.log('Hidden login screen');
+    }
+    if (appContainer) {
+        appContainer.classList.remove('hidden');
+        console.log('Showed app container');
+    }
 
     document.body.classList.remove('booting');
+    console.log('Removed booting class');
 
-    // ADD THIS DEBUG + ERROR HANDLING
-    console.log('About to call populateUIWithGuestData with:', window.guestData);
-    
+    // Try UI functions with full error protection
     try {
+        console.log('window.guestData:', window.guestData);
+        console.log('populateUIWithGuestData exists?', typeof populateUIWithGuestData);
+        
         if (typeof populateUIWithGuestData === 'function') {
-            console.log('populateUIWithGuestData exists, calling it...');
+            console.log('Calling populateUIWithGuestData...');
             await populateUIWithGuestData();
-            console.log('populateUIWithGuestData completed successfully');
-        } else {
-            console.error('populateUIWithGuestData function NOT FOUND');
+            console.log('populateUIWithGuestData DONE');
         }
         
         if (typeof updateStatusCard === 'function') {
             console.log('Calling updateStatusCard...');
             updateStatusCard();
         }
+        
     } catch (uiError) {
-        console.error('CRASH in populateUIWithGuestData:', uiError);
-        console.log('Stack trace:', uiError.stack);
+        console.error('UI CRASH DETAILS:', uiError);
+        console.error('Stack:', uiError.stack);
     }
+    
+    console.log('setLoggedIn COMPLETED');
 }
+
 
 async function checkExistingLogin() {
     let storedAuthKey = null;
