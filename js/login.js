@@ -72,7 +72,6 @@ async function setLoggedIn(userId, authKey) {
     console.log('setLoggedIn COMPLETED');
 }
 
-
 async function checkExistingLogin() {
     let storedAuthKey = null;
     try {

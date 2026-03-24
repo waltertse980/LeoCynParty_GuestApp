@@ -115,7 +115,8 @@ async function setupMemoryLane() {
 }
 
 async function populateUIWithGuestData() {
-    if (!guestData) return;
+    if (!window.guestData) return;
+    const guestData = window.guestData;
 
     setupMemoryLane();
 
