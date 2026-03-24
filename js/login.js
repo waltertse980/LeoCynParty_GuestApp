@@ -70,6 +70,14 @@ async function setLoggedIn(userId, authKey) {
     }
     
     console.log('setLoggedIn COMPLETED');
+
+    // Force show Home tab after login
+    if (typeof navhome === 'function') {
+        console.log('Calling navhome() to show first tab...');
+        navhome();
+    } else {
+        console.error('navhome function not found - tabs stay hidden!');
+    }
 }
 
 async function checkExistingLogin() {
