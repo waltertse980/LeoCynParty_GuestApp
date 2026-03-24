@@ -71,29 +71,50 @@ async function setLoggedIn(userId, authKey) {
     
     console.log('setLoggedIn COMPLETED');
 
-    // Force show Home tab - TRY BOTH POSSIBLE FUNCTION NAMES
+    // BULLETPROOF TAB REVEAL
+    console.log('=== TAB FIX START ===');
+
+    // Method 1: Try nav function
+    let tabVisible = false;
     if (typeof nav === 'function') {
-        console.log('Calling nav("home")...');
-        nav('home');
-    } else if (typeof navhome === 'function') {
-        console.log('Calling navhome()...');
-        navhome();
-    } else {
-        console.error('NO NAV FUNCTION FOUND - manually showing home tab');
-        
-        // EMERGENCY MANUAL FIX
-        const homeTab = document.getElementById('tab-home');
-        const homeNav = document.getElementById('nav-home');
-        
-        if (homeTab) {
-            homeTab.classList.remove('hidden-tab');
-            console.log('Manually showed tab-home');
-        }
-        if (homeNav) {
-            homeNav.classList.add('active');
-            console.log('Manually activated nav-home');
+        try {
+            console.log('Trying nav("home")...');
+            nav('home');
+            tabVisible = true;
+            console.log('nav("home") succeeded');
+        } catch (navError) {
+            console.error('nav("home") failed:', navError);
         }
     }
+
+    // Method 2: Manual DOM fix if nav failed
+    if (!tabVisible) {
+        console.log('nav failed, using manual fix...');
+        
+        // Remove hidden-tab from ALL tabs
+        document.querySelectorAll('.hidden-tab').forEach(tab => {
+            tab.classList.remove('hidden-tab');
+        });
+        
+        // Activate Home nav button
+        const homeNav = document.getElementById('nav-home');
+        if (homeNav) {
+            homeNav.classList.add('active');
+            homeNav.classList.remove('text-gray-400');
+            homeNav.classList.add('text-black');
+        }
+        
+        // Force show tab-home
+        const homeTab = document.getElementById('tab-home');
+        if (homeTab) {
+            homeTab.classList.remove('hidden-tab', 'hidden');
+            console.log('Manually showed tab-home');
+        }
+        
+        console.log('Manual tab fix complete');
+    }
+
+    console.log('=== TAB FIX END ===');
 }
 
 async function checkExistingLogin() {
