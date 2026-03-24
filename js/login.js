@@ -1,4 +1,23 @@
 // --- LOGIN LOGIC ---
+
+async function loginWithKey(key) {
+    console.log('Querying database for auth_id:', key);
+    
+    const { data, error } = await db
+        .from('profile')
+        .select('*')
+        .eq('auth_id', key)  // ← Changed from 'uid' to 'auth_id'
+        .single();
+    
+    if (error || !data) {
+        console.log('Database returned error or no data:', error?.message || 'No row found');
+        throw new Error('Invalid key');
+    }
+    
+    console.log('Found user:', data.uid);
+    return data;
+}
+
 async function setLoggedIn(userId, authKey) {
     try {
         localStorage.setItem('guestAppUserId', userId);
