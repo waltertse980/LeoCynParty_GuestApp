@@ -207,21 +207,28 @@ document.addEventListener('DOMContentLoaded', function() {
     async function subscribeToPush(uid, vapidKey) {
         console.log('🔄 Starting push subscription for:', uid);
         
-        if (!('PushManager' in window)) {
-            console.log('❌ PushManager not available');
+        if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+            console.log('❌ Push/ServiceWorker not available');
             return;
         }
 
         try {
-            console.log('✅ PushManager available, getting SW registration...');
-            const reg = await navigator.serviceWorker.ready;
-            console.log('✅ Service Worker ready');
+            // Direct registration instead of .ready
+            console.log('🔄 Getting direct SW registration...');
+            const reg = await navigator.serviceWorker.getRegistration();
+            console.log('SW registration:', reg ? 'found' : 'none');
+            
+            if (!reg) {
+                console.log('❌ No ServiceWorker registration');
+                return;
+            }
 
+            console.log('✅ Using existing registration');
             let sub = await reg.pushManager.getSubscription();
             console.log('Current subscription:', sub ? 'exists' : 'none');
 
             if (!sub) {
-                console.log('🔄 Requesting new subscription...');
+                console.log('🔄 Creating new subscription...');
                 const keyArray = urlBase64ToUint8Array(vapidKey);
                 sub = await reg.pushManager.subscribe({
                     userVisibleOnly: true,
@@ -231,11 +238,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             console.log('🔄 Saving to Supabase...');
-            const { error } = await db.from('push_subscriptions').upsert({
+            const { error, data } = await db.from('push_subscriptions').upsert({
                 uid: uid,
                 subscription: sub.toJSON()
             });
-
+            
             console.log('Supabase response:', { error: error?.message, data });
             
             if (error) {
@@ -243,10 +250,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            console.log('✅ Push subscription saved!');
+            console.log('✅ Push subscription saved!', data);
             
         } catch (err) {
-            console.error('❌ Push subscription FAILED:', err.message);
+            console.error('❌ Push FAILED:', err.message);
+            console.error('Full error:', err);
         }
     }
 
