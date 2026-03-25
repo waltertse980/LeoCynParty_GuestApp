@@ -267,36 +267,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Notifications button
     document.getElementById('btn-auth-notif').addEventListener('click', async () => {
-        console.log('🧪 Direct Supabase table test...');
+        console.log('🔄 Full push test...');
         
+        // 1. Force permission
+        const perm = await Notification.requestPermission();
+        console.log('Permission:', perm);
+        
+        if (perm !== 'granted') {
+            alert('Notifications blocked. Enable in site settings.');
+            return;
+        }
+        
+        // 2. Force SW register
         try {
-            const { error, data } = await db.from('push_subscriptions').upsert({
-                uid: currentUserId || 'test_guest',
-                subscription: { 
-                    endpoint: 'https://fcm.googleapis.com/test', 
-                    keys: { p256dh: 'test-key', auth: 'test-auth' } 
-                }
+            const reg = await navigator.serviceWorker.register('./sw.js');
+            console.log('✅ SW forced:', reg);
+            
+            // 3. Wait for ready + create sub
+            const readyReg = await navigator.serviceWorker.ready;
+            console.log('✅ SW ready');
+            
+            const sub = await readyReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
+            console.log('✅ Sub created:', sub.endpoint);
             
-            console.log('🧪 Supabase result:', { error: error?.message, data });
+            // 4. Save to table
+            const { error, data } = await db.from('push_subscriptions').upsert({
+                uid: currentUserId,
+                subscription: sub.toJSON()
+            });
+            console.log('Table save:', { error, data });
             
-            if (!error) {
-                document.getElementById('btn-auth-notif').innerHTML = `
-                    <span class="text-xs font-bold uppercase text-green-600">✅ Table OK!</span>
-                    <i class="fa-solid fa-check text-green-600"></i>
-                `;
-            } else {
-                document.getElementById('btn-auth-notif').innerHTML = `
-                    <span class="text-xs font-bold uppercase text-red-600">❌ ${error.message}</span>
-                    <i class="fa-solid fa-xmark text-red-600"></i>
-                `;
-            }
-        } catch (err) {
-            console.error('🧪 Supabase test error:', err);
             document.getElementById('btn-auth-notif').innerHTML = `
-                <span class="text-xs font-bold uppercase text-red-600">JS Error</span>
-                <i class="fa-solid fa-bug text-red-600"></i>
+                <span class="text-xs font-bold uppercase text-green-600">✅ Push Active</span>
+                <i class="fa-solid fa-satellite text-green-600"></i>
             `;
+            
+        } catch (err) {
+            console.error('❌ Full test failed:', err);
         }
     });
 });

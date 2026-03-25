@@ -759,11 +759,9 @@
 
     <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
-        navigator.serviceWorker.register('./js/sw.js').then(reg => {
-            console.log('✅ SW registered:', reg);
-        }).catch(err => {
-            console.error('❌ SW failed:', err);
-        });
+        navigator.serviceWorker.register('./js/sw.js')
+            .then(reg => console.log('✅ SW registered:', reg.scope))
+            .catch(err => console.error('❌ SW failed:', err));
     }
     </script>
 </body>
