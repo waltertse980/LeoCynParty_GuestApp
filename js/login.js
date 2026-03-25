@@ -63,6 +63,8 @@ async function subscribeToPush(uid, vapidKey) {
             uid: uid,
             subscription: sub.toJSON()
         });
+
+        console.log('Supabase response:', { error: error?.message, data });
         
         if (error) {
             console.error('❌ Supabase upsert failed:', error);
