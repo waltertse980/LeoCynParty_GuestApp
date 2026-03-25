@@ -711,7 +711,7 @@
             </button>
             <i class="fa-solid fa-martini-glass-citrus text-4xl text-[var(--red)] mb-3"></i>
             <h2 class="text-xl font-bold uppercase">"Continue tonight?"</h2>
-            <p class="text-xs text-gray-500 font-mono mb-4">Version 1.1.2 202603252115</p>
+            <p class="text-xs text-gray-500 font-mono mb-4">Version 1.1.4 202603252315</p>
             <p class="text-xs font-mono bg-gray-100 p-3 border border-black" data-i18n="about_credit">Developed with ❤️ for Leo & Cynthia.</p>
         </div>
     </div>
@@ -758,19 +758,11 @@
     </dialog>
 
     <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./js/sw.js', { scope: '/' })
-                .then(reg => {
-                    console.log('✅ Service Worker registered!', reg);
-                    // Re-try push after SW ready
-                    if (currentUserId) {
-                        setTimeout(() => subscribeToPush(currentUserId, VAPID_PUBLIC_KEY), 1000);
-                    }
-                })
-                .catch(err => {
-                    console.error('❌ Service Worker FAILED:', err);
-                });
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+        navigator.serviceWorker.register('./js/sw.js').then(reg => {
+            console.log('✅ SW registered:', reg);
+        }).catch(err => {
+            console.error('❌ SW failed:', err);
         });
     }
     </script>
