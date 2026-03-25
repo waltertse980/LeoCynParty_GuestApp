@@ -49,14 +49,14 @@ async function deriveUserIdFromKey(key) {
     const trimmedKey = key.trim();
     
     try {
-        // 1. Check if auth_id exists
-        const { data: profileMatch, error } = await db
+        // 1. Find profile by auth_id
+        const { data: profileMatch, error: profileError } = await db
             .from('profile')
             .select('uid, auth_id')
             .eq('auth_id', trimmedKey)
-            .single();  // ← Changed to .single()
+            .single();
 
-        if (error || !profileMatch) {
+        if (profileError || !profileMatch) {
             console.log('No profile found for key:', trimmedKey);
             return null;
         }
@@ -64,19 +64,28 @@ async function deriveUserIdFromKey(key) {
         const uid = profileMatch.uid;
         console.log('Found UID:', uid, 'for key:', trimmedKey);
 
-        // 2. Fetch full data for this UID
-        const [
-            { data: profileData },
-            { data: statusData }
-        ] = await Promise.all([
-            db.from('profile').select('*').eq('uid', uid).single(),
-            db.from('status').select('*').eq('uid', uid).single().catch(() => ({}))
-        ]);
+        // 2. Fetch full data (separate queries, no .catch chaining)
+        let profileData = {};
+        let statusData = {};
+        
+        try {
+            const profileRes = await db.from('profile').select('*').eq('uid', uid).single();
+            profileData = profileRes.data || {};
+        } catch (pErr) {
+            console.warn('Profile fetch failed:', pErr);
+        }
+        
+        try {
+            const statusRes = await db.from('status').select('*').eq('uid', uid).single();
+            statusData = statusRes.data || {};
+        } catch (sErr) {
+            console.warn('Status fetch failed:', sErr);
+        }
 
         // Merge into global guestData
         guestData = { 
-            ...(profileData || {}), 
-            ...(statusData || {}), 
+            ...profileData, 
+            ...statusData, 
             ...getLocalPatch(guestData?.uid || uid) 
         };
 
