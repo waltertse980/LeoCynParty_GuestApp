@@ -1,9 +1,14 @@
 self.addEventListener('install', (event) => {
     console.log('Service Worker: Installed');
+    self.skipWaiting();  // Activate immediately
+});
+
+self.addEventListener('activate', (event) => {
+    console.log('Service Worker: Activated');
+    event.waitUntil(self.clients.claim());  // Take control immediately
 });
 
 self.addEventListener('fetch', (event) => {
-    // Basic pass-through fetch so the app works normally
     event.respondWith(fetch(event.request));
 });
 
@@ -20,7 +25,6 @@ self.addEventListener('push', event => {
     );
 });
 
-// Allow notification click to open/focus the app
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
