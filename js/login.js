@@ -20,20 +20,48 @@ async function setLoggedIn(userId, authKey) {
     await subscribeToPush(userId);
 
     async function subscribeToPush(uid) {
-        if (!('PushManager' in window)) return console.log('Push not supported');
-        const reg = await navigator.serviceWorker.ready;
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-            sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
+        console.log('🔄 Starting push subscription for:', uid);
+        
+        if (!('PushManager' in window)) {
+            console.log('❌ PushManager not available');
+            return;
         }
-        await db.from('push_subscriptions').upsert({
-            uid: uid,
-            subscription: sub.toJSON()
-        });
-        console.log('Push subscribed:', uid);
+
+        try {
+            console.log('✅ PushManager available, getting SW registration...');
+            const reg = await navigator.serviceWorker.ready;
+            console.log('✅ Service Worker ready');
+
+            let sub = await reg.pushManager.getSubscription();
+            console.log('Current subscription:', sub ? 'exists' : 'none');
+
+            if (!sub) {
+                console.log('🔄 Requesting new subscription...');
+                const vapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: vapidKey
+                });
+                console.log('✅ New subscription created');
+            }
+
+            console.log('🔄 Saving to Supabase...');
+            const { error, data } = await db.from('push_subscriptions').upsert({
+                uid: uid,
+                subscription: sub.toJSON()
+            });
+            
+            if (error) {
+                console.error('❌ Supabase upsert failed:', error);
+                throw error;
+            }
+            
+            console.log('✅ Push subscription saved!', data);
+            
+        } catch (err) {
+            console.error('❌ Push subscription FAILED:', err.message);
+            console.error('Full error:', err);
+        }
     }
 
     function urlBase64ToUint8Array(base64String) {
