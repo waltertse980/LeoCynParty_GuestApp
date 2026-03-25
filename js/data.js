@@ -86,7 +86,7 @@ async function deriveUserIdFromKey(key) {
         guestData = { 
             ...profileData, 
             ...statusData, 
-            ...getLocalPatch(guestData?.uid || uid) 
+            ...getLocalPatchMap(guestData?.uid || uid) 
         };
 
         return uid;
