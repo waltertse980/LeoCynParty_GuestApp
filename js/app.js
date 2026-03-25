@@ -267,26 +267,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Notifications button
     document.getElementById('btn-auth-notif').addEventListener('click', async () => {
-        console.log('🔔 Manual notification permission requested');
+        console.log('🧪 Direct Supabase table test...');
         
-        // Check current permission
-        const permission = await Notification.requestPermission();
-        
-        if (permission === 'granted') {
-            console.log('✅ Notifications granted');
-            // Try push subscription now
-            if (currentUserId) {
-                await subscribeToPush(currentUserId, VAPID_PUBLIC_KEY);
+        try {
+            const { error, data } = await db.from('push_subscriptions').upsert({
+                uid: currentUserId || 'test_guest',
+                subscription: { 
+                    endpoint: 'https://fcm.googleapis.com/test', 
+                    keys: { p256dh: 'test-key', auth: 'test-auth' } 
+                }
+            });
+            
+            console.log('🧪 Supabase result:', { error: error?.message, data });
+            
+            if (!error) {
+                document.getElementById('btn-auth-notif').innerHTML = `
+                    <span class="text-xs font-bold uppercase text-green-600">✅ Table OK!</span>
+                    <i class="fa-solid fa-check text-green-600"></i>
+                `;
+            } else {
+                document.getElementById('btn-auth-notif').innerHTML = `
+                    <span class="text-xs font-bold uppercase text-red-600">❌ ${error.message}</span>
+                    <i class="fa-solid fa-xmark text-red-600"></i>
+                `;
             }
+        } catch (err) {
+            console.error('🧪 Supabase test error:', err);
             document.getElementById('btn-auth-notif').innerHTML = `
-                <span class="text-xs font-bold uppercase text-green-600" data-i18n="settings_notif">Notifications ON</span>
-                <i class="fa-solid fa-bell text-green-600"></i>
-            `;
-        } else {
-            console.log('❌ Notifications denied');
-            document.getElementById('btn-auth-notif').innerHTML = `
-                <span class="text-xs font-bold uppercase text-red-600">Notifications OFF</span>
-                <i class="fa-solid fa-bell-slash text-red-600"></i>
+                <span class="text-xs font-bold uppercase text-red-600">JS Error</span>
+                <i class="fa-solid fa-bug text-red-600"></i>
             `;
         }
     });
