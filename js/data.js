@@ -12,7 +12,6 @@ async function loadGuestsFromCSV() {
         ] = await Promise.all([
             db.from('profile').select('*'),
             db.from('status').select('*'),
-            db.from('game').select('*') // Ensure you created a 'game' table!
         ]);
 
         if (profilesError) throw profilesError;
@@ -72,7 +71,6 @@ async function deriveUserIdFromKey(key) {
         ] = await Promise.all([
             db.from('profile').select('*').eq('uid', uid).maybeSingle(),
             db.from('status').select('*').eq('uid', uid).maybeSingle(),
-            db.from('game').select('*').eq('uid', uid).maybeSingle()
         ]);
 
         // Merge it all into the global guestData variable
