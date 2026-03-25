@@ -17,7 +17,7 @@ async function setLoggedIn(userId, authKey) {
 
     const VAPID_PUBLIC_KEY = 'BOnGCym7arrYw2lqJw7gkPu2V1JjRj7lRF-J5UaAdhKUt00XOn8PeZ5PXsWl4g_wvGI5KHu5tfMYj6F_zf2qUU8';
 
-    await subscribeToPush(data.uid);
+    await subscribeToPush(userId);
 
     async function subscribeToPush(uid) {
         if (!('PushManager' in window)) return console.log('Push not supported');
