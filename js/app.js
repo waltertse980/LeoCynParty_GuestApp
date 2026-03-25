@@ -267,46 +267,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Notifications button
     document.getElementById('btn-auth-notif').addEventListener('click', async () => {
-        console.log('🔄 Full push test...');
+        const perm = Notification.permission;
         
-        // 1. Force permission
-        const perm = await Notification.requestPermission();
-        console.log('Permission:', perm);
+        if (perm === 'granted') {
+            // Check if already subscribed
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            
+            if (sub) {
+                document.getElementById('btn-auth-notif').innerHTML = `
+                    <span class="text-xs font-bold uppercase text-green-600">✅ Push Active</span>
+                    <i class="fa-solid fa-satellite-dish text-green-600"></i>
+                `;
+                console.log('🎉 Already subscribed:', sub.endpoint);
+                return;
+            }
+        }
         
         if (perm !== 'granted') {
-            alert('Notifications blocked. Enable in site settings.');
-            return;
+            const newPerm = await Notification.requestPermission();
+            if (newPerm !== 'granted') return;
         }
         
-        // 2. Force SW register
-        try {
-            const reg = await navigator.serviceWorker.register('./sw.js');
-            console.log('✅ SW forced:', reg);
-            
-            // 3. Wait for ready + create sub
-            const readyReg = await navigator.serviceWorker.ready;
-            console.log('✅ SW ready');
-            
-            const sub = await readyReg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-            console.log('✅ Sub created:', sub.endpoint);
-            
-            // 4. Save to table
-            const { error, data } = await db.from('push_subscriptions').upsert({
-                uid: currentUserId,
-                subscription: sub.toJSON()
-            });
-            console.log('Table save:', { error, data });
-            
-            document.getElementById('btn-auth-notif').innerHTML = `
-                <span class="text-xs font-bold uppercase text-green-600">✅ Push Active</span>
-                <i class="fa-solid fa-satellite text-green-600"></i>
-            `;
-            
-        } catch (err) {
-            console.error('❌ Full test failed:', err);
-        }
+        // Create + save sub
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        
+        await db.from('push_subscriptions').upsert({
+            uid: currentUserId,
+            subscription: sub.toJSON()
+        });
+        
+        document.getElementById('btn-auth-notif').innerHTML = `
+            <span class="text-xs font-bold uppercase text-green-600">✅ Push Active</span>
+            <i class="fa-solid fa-satellite-dish text-green-600"></i>
+        `;
     });
 });
