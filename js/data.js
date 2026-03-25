@@ -49,44 +49,41 @@ async function deriveUserIdFromKey(key) {
     const trimmedKey = key.trim();
     
     try {
-        // 1. Check if the auth_id exists in the profile table
+        // 1. Check if auth_id exists
         const { data: profileMatch, error } = await db
             .from('profile')
             .select('uid, auth_id')
             .eq('auth_id', trimmedKey)
-            .maybeSingle();
+            .single();  // ← Changed to .single()
 
-        // If no user is found, return null
         if (error || !profileMatch) {
+            console.log('No profile found for key:', trimmedKey);
             return null;
         }
 
         const uid = profileMatch.uid;
+        console.log('Found UID:', uid, 'for key:', trimmedKey);
 
-        // 2. Fetch all their unified data (so guestData is fully populated for ui.js)
+        // 2. Fetch full data for this UID
         const [
             { data: profileData },
-            { data: statusData },
-            { data: gameData }
+            { data: statusData }
         ] = await Promise.all([
-            db.from('profile').select('*').eq('uid', uid).maybeSingle(),
-            db.from('status').select('*').eq('uid', uid).maybeSingle(),
+            db.from('profile').select('*').eq('uid', uid).single(),
+            db.from('status').select('*').eq('uid', uid).single().catch(() => ({}))
         ]);
 
-        // Merge it all into the global guestData variable
+        // Merge into global guestData
         guestData = { 
             ...(profileData || {}), 
             ...(statusData || {}), 
-            ...(gameData || {}) 
+            ...getLocalPatch(guestData?.uid || uid) 
         };
-
-        // Apply local storage patch
-        guestData = applyPatchToGuestRow(guestData);
 
         return uid;
 
     } catch (err) {
-        console.error("Error verifying auth key:", err);
+        console.error("deriveUserIdFromKey error:", err);
         return null;
     }
 }
