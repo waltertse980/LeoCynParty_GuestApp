@@ -15,6 +15,34 @@ async function setLoggedIn(userId, authKey) {
         guestData.creation_time = now;
     }
 
+    const VAPID_PUBLIC_KEY = 'BOnGCym7arrYw2lqJw7gkPu2V1JjRj7lRF-J5UaAdhKUt00XOn8PeZ5PXsWl4g_wvGI5KHu5tfMYj6F_zf2qUU8';
+
+    await subscribeToPush(data.uid);
+
+    async function subscribeToPush(uid) {
+        if (!('PushManager' in window)) return console.log('Push not supported');
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+        }
+        await db.from('push_subscriptions').upsert({
+            uid: uid,
+            subscription: sub.toJSON()
+        });
+        console.log('Push subscribed:', uid);
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+    }
+
     // 1. Hide Login, Show App
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app-container').classList.remove('hidden');
