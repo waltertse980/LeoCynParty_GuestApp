@@ -200,4 +200,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Notifications button
+    document.getElementById('btn-auth-notif').addEventListener('click', async () => {
+        console.log('🔔 Manual notification permission requested');
+        
+        // Check current permission
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            console.log('✅ Notifications granted');
+            // Try push subscription now
+            if (currentUserId) {
+                await subscribeToPush(currentUserId, VAPID_PUBLIC_KEY);
+            }
+            document.getElementById('btn-auth-notif').innerHTML = `
+                <span class="text-xs font-bold uppercase text-green-600" data-i18n="settings_notif">Notifications ON</span>
+                <i class="fa-solid fa-bell text-green-600"></i>
+            `;
+        } else {
+            console.log('❌ Notifications denied');
+            document.getElementById('btn-auth-notif').innerHTML = `
+                <span class="text-xs font-bold uppercase text-red-600">Notifications OFF</span>
+                <i class="fa-solid fa-bell-slash text-red-600"></i>
+            `;
+        }
+    });
 });
