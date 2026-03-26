@@ -351,36 +351,27 @@
         </div>
 
         <!-- === TAB: MISSIONS === -->
-        <div id="tab-missions" class="flex-1 overflow-y-auto bg-gray-100 hidden-tab">
-            <div class="p-6 pt-12 border-b-4 border-black bg-white">
-                <h1 id="lbl-missions-title" class="mono text-3xl">Missions</h1>
-                <p id="lbl-progress" class="text-[10px] uppercase text-gray-500 font-bold mt-1">Progress: 25%</p>
-                <div class="w-full bg-gray-200 h-2 mt-4 border border-black">
-                    <div class="bg-[var(--red)] h-full" style="width: 25%"></div>
+        <div id="tab-missions" class="flex-1 overflow-y-auto bg-[var(--cream)] hidden-tab">
+            <div id="mission-header" class="p-6 pt-12 border-b-4 border-black transition-colors" style="background-color: var(--blue);">
+                <h1 id="lbl-missions-title" class="mono text-3xl font-black text-white drop-shadow-[2px_2px_0_#000]">Mission</h1>
+                <p class="text-[10px] uppercase text-white font-bold mt-1 drop-shadow-[1px_1px_0_#000]">Progress: <span id="mission-progress-text">0%</span></p>
+                <div class="w-full bg-white h-2 mt-4 border border-black shadow-[2px_2px_0_0_#000]">
+                    <div id="mission-progress-bar" class="bg-black h-full transition-all duration-500" style="width: 0%"></div>
                 </div>
             </div>
             
-            <div class="p-4 space-y-3">
-                 <div class="card-sketch p-4 flex justify-between items-center">
-                    <div class="flex gap-3 items-center">
-                         <div class="bg-purple-100 text-black border border-black w-8 h-8 rounded flex items-center justify-center"><i class="fa-solid fa-camera"></i></div>
-                         <div>
-                             <h4 id="mission-1-title" class="font-bold text-xs uppercase">Selfie w/ Stranger</h4>
-                             <p class="text-[10px] text-[var(--red)]">+5% Progress</p>
-                         </div>
-                    </div>
-                    <button id="btn-upload" class="btn-terracotta text-[10px] px-3 py-1 rounded-none">UPLOAD</button>
-                 </div>
+            <div id="mission-cards-container" class="p-4">
+                 <!-- JavaScript will inject cards here -->
             </div>
         </div>
 
         <!-- === TAB: TEAM === -->
-        <div id="tab-team" class="flex-1 overflow-hidden bg-gray-100 relative hidden-tab">
-            <div class="absolute inset-0 bg-[#2563EB] flex flex-col items-center justify-center text-white p-8 text-center border-8 border-black">
+        <div id="tab-team" class="flex-1 overflow-hidden relative hidden-tab bg-[var(--cream)]">
+            <div id="team-bg" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center transition-colors">
                 <i class="fa-solid fa-users text-6xl mb-6 text-black opacity-50"></i>
-                <h2 id="lbl-squad" class="text-sm font-mono uppercase tracking-widest mb-2 border-b border-white pb-1">Your Squad</h2>
-                <h1 class="text-6xl font-black mb-8 mono rotate-[-5deg] text-white drop-shadow-[4px_4px_0_#000]">NEON BLUE</h1>
-                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2">Find this color in the crowd.</p>
+                <h2 class="text-sm font-mono uppercase tracking-widest mb-2 border-b-2 border-black pb-1 text-black font-bold">Your Squad</h2>
+                <h1 id="lbl-squad" class="text-5xl font-black mb-8 mono rotate-[-5deg] drop-shadow-[4px_4px_0_#000] text-white">NEON BLUE</h1>
+                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2 shadow-[2px_2px_0_0_#000]">Find this color in the crowd.</p>
             </div>
         </div>
 

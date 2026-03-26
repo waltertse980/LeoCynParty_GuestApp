@@ -1,116 +1,4 @@
-// 3. UI Updates after successful login
-
-async function setupMemoryLane() {
-    const memoryCard = document.getElementById('memory-card');
-    const memoryImg = document.getElementById('memory-img');
-    const memoryLock = document.getElementById('memory-lock');
-    const txtMemory = document.getElementById('txt-memory');
-
-    if (!memoryCard || !guestData) return;
-
-    const hasImage = guestData.iconExist === true || guestData.iconExist === 'true' || guestData.iconExist === 'TRUE';
-    
-    if (!hasImage || !guestData.icon_filename || guestData.icon_filename === 'NULL') {
-        memoryCard.classList.add('hidden');
-        return; 
-    }
-
-    memoryCard.classList.remove('hidden');
-
-    const revealDate = new Date("2026-03-25T18:30:00+08:00");
-    const now = new Date();
-
-    // 3. Time Logic
-    if (now < revealDate) {
-        // --- LOCKED STATE (BEFORE TIME IS UP) ---
-        memoryLock.classList.remove('hidden'); 
-        memoryImg.style.backgroundImage = 'none'; 
-        
-        // Remove blur classes just to be safe
-        memoryImg.classList.remove('filter', 'blur-[15px]', 'scale-110');
-        
-        txtMemory.textContent = "REVEALS MAR 25, 18:30";
-        memoryCard.onclick = null; 
-        return; 
-    }
-
-    // --- UNLOCKED STATE (TIME IS UP!) ---
-    const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
-    const targetFileName = guestData.icon_filename.trim();
-    const validUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/${targetFileName}`;
-
-    memoryLock.classList.add('hidden'); 
-    memoryImg.style.backgroundImage = `url('${validUrl}')`; 
-    
-    // 🔥 1. Remove the grayscale class so the color comes back!
-    memoryImg.classList.remove('grayscale');
-
-    // 🔥 You can adjust 'blur-[10px]' to 'blur-[5px]' or 'blur-[15px]' right here:
-    memoryImg.classList.add('filter', 'blur-[15px]', 'scale-110');
-    
-    const isZh = document.body.classList.contains('lang-zh');
-    txtMemory.textContent = isZh ? "精選照片" : "carefully selected photo";
-
-    // Setup fullscreen popup
-    const dialog = document.getElementById('image-modal');
-    const fullImg = document.getElementById('full-memory-img');
-    const closeBtn = document.getElementById('btn-close-image');
-    const downloadBtn = document.getElementById('btn-download-image');
-
-    if (dialog && fullImg) {
-        memoryCard.onclick = () => {
-            fullImg.src = validUrl;
-            
-            if (downloadBtn) {
-                // 1. Dynamic Filename Logic (HK Time)
-                const eventStart = new Date("2026-03-28T18:30:00+08:00").getTime();
-                const now = new Date().getTime();
-                const givenName = (guestData.givenname && guestData.givenname !== "NULL") ? guestData.givenname.trim() : "";
-                
-                // Extract the extension from the image URL (e.g., .jpg, .png)
-                const extMatch = validUrl.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
-                const ext = extMatch ? extMatch[1] : "jpg";
-                
-                const prefix = now < eventStart ? "SeeYouAtTheParty" : "ThankYouForComing";
-                const customFileName = `${prefix}${givenName}.${ext}`;
-
-                // 2. Set the fallback download behavior
-                // Forces Supabase to download with our custom filename if the user insists on a file
-                downloadBtn.href = `${validUrl}?download=${encodeURIComponent(customFileName)}`;
-
-                // 3. Intercept the click to attempt "Save to Photos" via native Share Sheet
-                downloadBtn.onclick = async (e) => {
-                    try {
-                        const response = await fetch(validUrl);
-                        const blob = await response.blob();
-                        const file = new File([blob], customFileName, { type: blob.type });
-                        
-                        // If the device supports Web Share (iOS/Android), open the share sheet
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            e.preventDefault(); // Stop the default file download
-                            await navigator.share({
-                                files: [file],
-                                title: 'Memory Lane Photo'
-                            });
-                        }
-                    } catch (err) {
-                        console.log("Web share cancelled or unsupported, falling back to standard file download.", err);
-                        // It will silently fail and let the <a> tag download the file normally
-                    }
-                };
-            }
-            
-            dialog.showModal();
-        };
-        
-        if (closeBtn) closeBtn.onclick = () => dialog.close();
-        dialog.onclick = (e) => {
-            // Close if clicking outside the image boundaries
-            if (e.target === dialog || e.target.tagName === 'DIV') dialog.close();
-        };
-    }
-}
-
+// --- GENERAL LOGIC
 async function populateUIWithGuestData() {
     if (!guestData) return;
 
@@ -473,9 +361,6 @@ async function populateUIWithGuestData() {
         };
     }
 
-
-
-
     // ADD THESE TWO LINES AT THE VERY END
     updateStatusCard(); 
     setRandomTip();
@@ -483,6 +368,45 @@ async function populateUIWithGuestData() {
     // Initialize Notice logic and check admin rights
     setupNoticeAdmin();
     loadNotices();
+}
+
+// --- HOME LOGIC ---
+function updateHomeTabLayout(isCheckedIn) {
+    const preHeader = document.getElementById("home-precheckin-header");
+    const transportBtn = document.getElementById("btn-transport");
+    const surveyBtn = document.getElementById("btn-survey");
+    
+    const drinkCard = document.getElementById("home-drink-card");
+    const wifiCard = document.getElementById("home-wifi-card");
+    const tipsCard = document.getElementById("home-tips-card");
+
+    if (isCheckedIn) {
+        // Hide "Before" elements
+        if (preHeader) preHeader.classList.add("hidden");
+        if (transportBtn) transportBtn.classList.add("hidden");
+        if (surveyBtn) surveyBtn.classList.add("hidden");
+        
+        // Show "After" elements
+        if (drinkCard) drinkCard.classList.remove("hidden");
+        if (wifiCard) wifiCard.classList.remove("hidden");
+        if (tipsCard) tipsCard.classList.remove("hidden");
+        
+        // Show correct Nav Tabs
+        toggleNavTabs(true);
+    } else {
+        // Show "Before" elements
+        if (preHeader) preHeader.classList.remove("hidden");
+        if (transportBtn) transportBtn.classList.remove("hidden");
+        if (surveyBtn) surveyBtn.classList.remove("hidden");
+        
+        // Hide "After" elements
+        if (drinkCard) drinkCard.classList.add("hidden");
+        if (wifiCard) wifiCard.classList.add("hidden");
+        if (tipsCard) tipsCard.classList.add("hidden");
+        
+        // Show correct Nav Tabs
+        toggleNavTabs(false);
+    }
 }
 
 function updateStatusCard() {
@@ -524,139 +448,6 @@ function updateStatusCard() {
         icon.className = "fa-solid fa-person-running text-red-700";
     }
 }
-
-function updateHomeTabLayout(isCheckedIn) {
-    const preHeader = document.getElementById("home-precheckin-header");
-    const transportBtn = document.getElementById("btn-transport");
-    const surveyBtn = document.getElementById("btn-survey");
-    
-    const drinkCard = document.getElementById("home-drink-card");
-    const wifiCard = document.getElementById("home-wifi-card");
-    const tipsCard = document.getElementById("home-tips-card");
-
-    if (isCheckedIn) {
-        // Hide "Before" elements
-        if (preHeader) preHeader.classList.add("hidden");
-        if (transportBtn) transportBtn.classList.add("hidden");
-        if (surveyBtn) surveyBtn.classList.add("hidden");
-        
-        // Show "After" elements
-        if (drinkCard) drinkCard.classList.remove("hidden");
-        if (wifiCard) wifiCard.classList.remove("hidden");
-        if (tipsCard) tipsCard.classList.remove("hidden");
-        
-        // Show correct Nav Tabs
-        toggleNavTabs(true);
-    } else {
-        // Show "Before" elements
-        if (preHeader) preHeader.classList.remove("hidden");
-        if (transportBtn) transportBtn.classList.remove("hidden");
-        if (surveyBtn) surveyBtn.classList.remove("hidden");
-        
-        // Hide "After" elements
-        if (drinkCard) drinkCard.classList.add("hidden");
-        if (wifiCard) wifiCard.classList.add("hidden");
-        if (tipsCard) tipsCard.classList.add("hidden");
-        
-        // Show correct Nav Tabs
-        toggleNavTabs(false);
-    }
-}
-
-function toggleNavTabs(isPostCheckin) {
-    const navMissions = document.getElementById("nav-missions");
-    const navTeam = document.getElementById("nav-team");
-    const navNotice = document.getElementById("nav-notice");
-    const navCamera = document.getElementById("nav-camera");
-
-    if (isPostCheckin) {
-        if (navMissions) navMissions.classList.remove("hidden");
-        if (navTeam) navTeam.classList.remove("hidden");
-        if (navNotice) navNotice.classList.add("hidden");
-        if (navCamera) navCamera.classList.add("hidden");
-        // If user is currently looking at a hidden tab, force them to Home
-        const currentActive = document.querySelector('.nav-item.active');
-        if (currentActive && (currentActive.id === 'nav-notice' || currentActive.id === 'nav-camera')) {
-            nav('home');
-        }                
-    } else {
-        if (navMissions) navMissions.classList.add("hidden");
-        if (navTeam) navTeam.classList.add("hidden");
-        if (navNotice) navNotice.classList.remove("hidden");
-        if (navCamera) navCamera.classList.remove("hidden");
-        // If user is currently looking at a hidden tab, force them to Home
-        const currentActive = document.querySelector('.nav-item.active');
-        if (currentActive && (currentActive.id === 'nav-missions' || currentActive.id === 'nav-team')) {
-            nav('home');
-        }                
-    }
-}
-
-function nav(tabId) {
-    // 1. Hide all tabs and remove active state from all nav buttons
-    document.querySelectorAll('.iphone-container > div[id^="tab-"]').forEach(el => el.classList.add('hidden-tab'));
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    
-    // 2. Show the selected tab and make its nav button active
-    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
-    document.getElementById('nav-' + tabId).classList.add('active');
-
-    // 3. --- NEW LOGIC: Stop Camera if leaving the Camera tab ---
-    // If we are NOT navigating to the camera tab, kill any active video streams
-    if (tabId !== 'camera') {
-        if (window.currentStream) {
-            // Stop all hardware tracks (turns off the green light)
-            window.currentStream.getTracks().forEach(track => track.stop());
-            window.currentStream = null;
-            
-            // Reset the UI elements
-            const videoFeed = document.getElementById('camera-feed');
-            const scanAnimation = document.getElementById('scan-animation');
-            const cameraPlaceholder = document.getElementById('camera-placeholder');
-            const btnOpenCamera = document.getElementById('btn-open-camera');
-            
-            if (videoFeed) {
-                videoFeed.srcObject = null;
-                videoFeed.classList.add('hidden');
-            }
-            if (scanAnimation) scanAnimation.classList.add('hidden');
-            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
-            
-            if (btnOpenCamera) {
-                btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? "打開相機" : "Open Camera";
-                btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-    }
-}
-
-
-const targetDate = new Date(2026, 2, 28, 18, 30, 0); 
-
-function updateCountdown() {
-    const now = new Date();
-    let diff = targetDate.getTime() - now.getTime();
-    if (diff <= 0) {
-        document.getElementById('cd-days').textContent = '00';
-        document.getElementById('cd-hours').textContent = '00';
-        document.getElementById('cd-mins').textContent = '00';
-        return;
-    }
-    const msInMinute = 60 * 1000, msInHour = 60 * msInMinute, msInDay = 24 * msInHour;
-    const days = Math.floor(diff / msInDay); diff -= days * msInDay;
-    const hours = Math.floor(diff / msInHour); diff -= hours * msInHour;
-    const mins = Math.floor(diff / msInMinute);
-    document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
-    document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
-    document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
-}
-
-const PARTY_TIPS = [
-    "Say hi to someone from a different group—instant new friend.",
-    "Drink water between rounds. Your future self will thank you.",
-    "Use Uber matching if you’re heading the same way.",
-    "Set your Drunk Pick-up Contact before you need it."
-];
 
 function setRandomTip() {
     const el = document.getElementById("txt-party-tip");
@@ -708,6 +499,100 @@ function generateArrivalOptions() {
     }
 }
 
+function updateCountdown() {
+    const targetDate = new Date("2026-03-28T18:30:00+08:00"); // Standardized to HK Time
+    const now = new Date();
+    let diff = targetDate.getTime() - now.getTime();
+    
+    // Stop at 00 00 00 and prevent negative values
+    if (diff <= 0) {
+        const dEl = document.getElementById("cd-days");
+        const hEl = document.getElementById("cd-hours");
+        const mEl = document.getElementById("cd-mins");
+        if (dEl) dEl.textContent = "00";
+        if (hEl) hEl.textContent = "00";
+        if (mEl) mEl.textContent = "00";
+        return; 
+    }
+    
+    const msInMinute = 60 * 1000, msInHour = 60 * msInMinute, msInDay = 24 * msInHour;
+    const days = Math.floor(diff / msInDay);
+    diff -= days * msInDay;
+    const hours = Math.floor(diff / msInHour);
+    diff -= hours * msInHour;
+    const mins = Math.floor(diff / msInMinute);
+    
+    document.getElementById("cd-days").textContent = String(days).padStart(2, "0");
+    document.getElementById("cd-hours").textContent = String(hours).padStart(2, "0");
+    document.getElementById("cd-mins").textContent = String(mins).padStart(2, "0");
+}
+
+const PARTY_TIPS = [
+    "Say hi to someone from a different group—instant new friend.",
+    "Drink water between rounds. Your future self will thank you.",
+    "Use Uber matching if you’re heading the same way.",
+    "Set your Drunk Pick-up Contact before you need it."
+];
+
+// --- MISSION LOGIC ---
+function renderMissions(gameData, squadColour) {
+    const header = document.getElementById("mission-header");
+    if (header && squadColour) header.style.backgroundColor = squadColour;
+    
+    const games = [
+        { id: '1_photo', title: 'Game 1', admins: 'Admin A, Admin B' },
+        { id: '2_buy', title: 'Game 2', admins: 'Admin C, Admin D' },
+        { id: '3_iq', title: 'Game 3', admins: 'Admin E, Admin F' },
+        { id: '4_posture', title: 'Game 4', admins: 'Admin G, Admin H' },
+        { id: '5_lyrics', title: 'Game 5', admins: 'Admin I, Admin J' }
+    ];
+    
+    let completedCount = 0;
+    let cardsHtml = '';
+    
+    games.forEach(g => {
+        const isCompleted = gameData && gameData[g.id] !== null && gameData[g.id] !== "";
+        if (isCompleted) completedCount++;
+        
+        // Design state
+        const headerBg = isCompleted ? 'bg-green-600' : 'bg-gray-400';
+        const checkboxContent = isCompleted 
+            ? '<i class="fa-solid fa-check text-green-600 text-lg"></i>' 
+            : '';
+            
+        cardsHtml += `
+            <div class="card-sketch border-2 border-black bg-white overflow-hidden shadow-[4px_4px_0_0_#000] mb-4">
+                <!-- Header (Always Visible) -->
+                <div class="${headerBg} text-white p-4 flex justify-between items-center cursor-pointer active:brightness-90 transition" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                    <h4 class="font-bold text-sm uppercase mono tracking-widest">${g.title}</h4>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <!-- Body (Collapsible) -->
+                <div class="hidden flex-col bg-white text-black">
+                    <div class="p-4 text-xs font-mono text-gray-600 leading-relaxed">
+                        Admins-in-charge: <br/>${g.admins}
+                    </div>
+                    <div class="border-t border-gray-300 mx-4"></div>
+                    <div class="p-4 flex justify-between items-center">
+                        <span class="font-bold text-xs">20 marks / 20分</span>
+                        <div class="w-6 h-6 border-2 border-black flex items-center justify-center bg-gray-50 shadow-[2px_2px_0_0_#000]">
+                            ${checkboxContent}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    const container = document.getElementById("mission-cards-container");
+    if (container) container.innerHTML = cardsHtml;
+    
+    const progress = (completedCount / 5) * 100;
+    const progressText = document.getElementById("mission-progress-text");
+    const progressBar = document.getElementById("mission-progress-bar");
+    if (progressText) progressText.textContent = `${progress}%`;
+    if (progressBar) progressBar.style.width = `${progress}%`;
+}
 
 // --- NOTICE BOARD LOGIC ---
 async function loadNotices() {
@@ -932,6 +817,186 @@ function setupNoticeAdmin() {
             
             loadNotices(); // Refresh view
         };
+    }
+}
+
+// --- PROFILE LOGIC
+async function setupMemoryLane() {
+    const memoryCard = document.getElementById('memory-card');
+    const memoryImg = document.getElementById('memory-img');
+    const memoryLock = document.getElementById('memory-lock');
+    const txtMemory = document.getElementById('txt-memory');
+
+    if (!memoryCard || !guestData) return;
+
+    const hasImage = guestData.iconExist === true || guestData.iconExist === 'true' || guestData.iconExist === 'TRUE';
+    
+    if (!hasImage || !guestData.icon_filename || guestData.icon_filename === 'NULL') {
+        memoryCard.classList.add('hidden');
+        return; 
+    }
+
+    memoryCard.classList.remove('hidden');
+
+    const revealDate = new Date("2026-03-25T18:30:00+08:00");
+    const now = new Date();
+
+    // 3. Time Logic
+    if (now < revealDate) {
+        // --- LOCKED STATE (BEFORE TIME IS UP) ---
+        memoryLock.classList.remove('hidden'); 
+        memoryImg.style.backgroundImage = 'none'; 
+        
+        // Remove blur classes just to be safe
+        memoryImg.classList.remove('filter', 'blur-[15px]', 'scale-110');
+        
+        txtMemory.textContent = "REVEALS MAR 25, 18:30";
+        memoryCard.onclick = null; 
+        return; 
+    }
+
+    // --- UNLOCKED STATE (TIME IS UP!) ---
+    const SUPABASE_PROJECT_ID = "oobjykyxsxhuvspnngbu"; 
+    const targetFileName = guestData.icon_filename.trim();
+    const validUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/memory/${targetFileName}`;
+
+    memoryLock.classList.add('hidden'); 
+    memoryImg.style.backgroundImage = `url('${validUrl}')`; 
+    
+    // 🔥 1. Remove the grayscale class so the color comes back!
+    memoryImg.classList.remove('grayscale');
+
+    // 🔥 You can adjust 'blur-[10px]' to 'blur-[5px]' or 'blur-[15px]' right here:
+    memoryImg.classList.add('filter', 'blur-[15px]', 'scale-110');
+    
+    const isZh = document.body.classList.contains('lang-zh');
+    txtMemory.textContent = isZh ? "精選照片" : "carefully selected photo";
+
+    // Setup fullscreen popup
+    const dialog = document.getElementById('image-modal');
+    const fullImg = document.getElementById('full-memory-img');
+    const closeBtn = document.getElementById('btn-close-image');
+    const downloadBtn = document.getElementById('btn-download-image');
+
+    if (dialog && fullImg) {
+        memoryCard.onclick = () => {
+            fullImg.src = validUrl;
+            
+            if (downloadBtn) {
+                // 1. Dynamic Filename Logic (HK Time)
+                const eventStart = new Date("2026-03-28T18:30:00+08:00").getTime();
+                const now = new Date().getTime();
+                const givenName = (guestData.givenname && guestData.givenname !== "NULL") ? guestData.givenname.trim() : "";
+                
+                // Extract the extension from the image URL (e.g., .jpg, .png)
+                const extMatch = validUrl.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
+                const ext = extMatch ? extMatch[1] : "jpg";
+                
+                const prefix = now < eventStart ? "SeeYouAtTheParty" : "ThankYouForComing";
+                const customFileName = `${prefix}${givenName}.${ext}`;
+
+                // 2. Set the fallback download behavior
+                // Forces Supabase to download with our custom filename if the user insists on a file
+                downloadBtn.href = `${validUrl}?download=${encodeURIComponent(customFileName)}`;
+
+                // 3. Intercept the click to attempt "Save to Photos" via native Share Sheet
+                downloadBtn.onclick = async (e) => {
+                    try {
+                        const response = await fetch(validUrl);
+                        const blob = await response.blob();
+                        const file = new File([blob], customFileName, { type: blob.type });
+                        
+                        // If the device supports Web Share (iOS/Android), open the share sheet
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            e.preventDefault(); // Stop the default file download
+                            await navigator.share({
+                                files: [file],
+                                title: 'Memory Lane Photo'
+                            });
+                        }
+                    } catch (err) {
+                        console.log("Web share cancelled or unsupported, falling back to standard file download.", err);
+                        // It will silently fail and let the <a> tag download the file normally
+                    }
+                };
+            }
+            
+            dialog.showModal();
+        };
+        
+        if (closeBtn) closeBtn.onclick = () => dialog.close();
+        dialog.onclick = (e) => {
+            // Close if clicking outside the image boundaries
+            if (e.target === dialog || e.target.tagName === 'DIV') dialog.close();
+        };
+    }
+}
+
+// --- NAV BAR LOGIC
+function toggleNavTabs(isPostCheckin) {
+    const navMissions = document.getElementById("nav-missions");
+    const navTeam = document.getElementById("nav-team");
+    const navNotice = document.getElementById("nav-notice");
+    const navCamera = document.getElementById("nav-camera");
+
+    if (isPostCheckin) {
+        if (navMissions) navMissions.classList.remove("hidden");
+        if (navTeam) navTeam.classList.remove("hidden");
+        if (navNotice) navNotice.classList.add("hidden");
+        if (navCamera) navCamera.classList.add("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-notice' || currentActive.id === 'nav-camera')) {
+            nav('home');
+        }                
+    } else {
+        if (navMissions) navMissions.classList.add("hidden");
+        if (navTeam) navTeam.classList.add("hidden");
+        if (navNotice) navNotice.classList.remove("hidden");
+        if (navCamera) navCamera.classList.remove("hidden");
+        // If user is currently looking at a hidden tab, force them to Home
+        const currentActive = document.querySelector('.nav-item.active');
+        if (currentActive && (currentActive.id === 'nav-missions' || currentActive.id === 'nav-team')) {
+            nav('home');
+        }                
+    }
+}
+
+function nav(tabId) {
+    // 1. Hide all tabs and remove active state from all nav buttons
+    document.querySelectorAll('.iphone-container > div[id^="tab-"]').forEach(el => el.classList.add('hidden-tab'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    // 2. Show the selected tab and make its nav button active
+    document.getElementById('tab-' + tabId).classList.remove('hidden-tab');
+    document.getElementById('nav-' + tabId).classList.add('active');
+
+    // 3. --- NEW LOGIC: Stop Camera if leaving the Camera tab ---
+    // If we are NOT navigating to the camera tab, kill any active video streams
+    if (tabId !== 'camera') {
+        if (window.currentStream) {
+            // Stop all hardware tracks (turns off the green light)
+            window.currentStream.getTracks().forEach(track => track.stop());
+            window.currentStream = null;
+            
+            // Reset the UI elements
+            const videoFeed = document.getElementById('camera-feed');
+            const scanAnimation = document.getElementById('scan-animation');
+            const cameraPlaceholder = document.getElementById('camera-placeholder');
+            const btnOpenCamera = document.getElementById('btn-open-camera');
+            
+            if (videoFeed) {
+                videoFeed.srcObject = null;
+                videoFeed.classList.add('hidden');
+            }
+            if (scanAnimation) scanAnimation.classList.add('hidden');
+            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
+            
+            if (btnOpenCamera) {
+                btnOpenCamera.textContent = document.body.classList.contains('lang-zh') ? "打開相機" : "Open Camera";
+                btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
     }
 }
 
