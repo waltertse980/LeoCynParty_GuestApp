@@ -7,7 +7,7 @@
             home_btn_transport: "TRANSPORTATION GUIDE",
             home_btn_survey: "QUICK SURVEY",
 
-            party_tips_title: "Party Tips",
+            party_tips_title: "Irresponsible Advice",
 
             transport_title: "Transportation Guide",
             transport_action: "Get Directions (Transit)",
