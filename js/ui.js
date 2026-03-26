@@ -2,35 +2,15 @@
 async function populateUIWithGuestData() {
     if (!guestData) return;
 
+    //
+    // === --- GENERAL --- ===
+    //
+
     setupMemoryLane();
 
-    // Submission of Quick Survey to Database:
-    const btnSubmitSurvey = document.getElementById('btn-submit-survey');
-    if (btnSubmitSurvey) {
-        btnSubmitSurvey.onclick = async function() {
-            const payload = {
-                uid: guestData.uid,
-                allergy: document.getElementById('sv-allergy-cb').checked,
-                allergy_type: document.getElementById('sv-allergy-text').value.trim(),
-                veg: document.getElementById('sv-veg').checked,    // REMOVED -cb
-                halal: document.getElementById('sv-halal').checked, // REMOVED -cb
-                eta: document.getElementById('sv-arrival-select').value,
-                notes: document.getElementById('sv-notes').value.trim()
-            };
-
-            console.log("DB Update: Inserting into Survey table:", payload);
-            // SUPABASE:
-            // Use upsert to allow them to overwrite their survey if they submit again
-            await db.from('survey').upsert(payload, { onConflict: 'uid' });
-            
-            
-            // Close modal
-            document.getElementById('survey-modal').classList.add('hidden');
-            document.getElementById('survey-modal').classList.remove('flex');
-        };
-    }
+    // --- PROFILE ---
     
-    // --- NEW: Dynamic Profile Greeting ---
+    // - Dynamic Greeting
     const isZhLang = document.body.classList.contains('lang-zh');
     const givenName = (guestData.givenname && guestData.givenname !== "NULL") ? guestData.givenname : "";
     const chiName = (guestData.chinese_name && guestData.chinese_name !== "NULL") ? guestData.chinese_name : givenName; 
@@ -43,93 +23,8 @@ async function populateUIWithGuestData() {
             profileTitleEl.textContent = givenName ? `Hello ${givenName} :)` : "Hello :)";
         }
     }
-    // -------------------------------------
 
-    // 4) Squad label format: "Squad TOPAZ"
-    // 改良版Team Tab顏色及名稱設定
-    function updateTeamTabUI() {
-        if (!guestData) return false; // 如無數據則退出
-
-        // 1. 更新Squad名稱
-        const rawSquad = (guestData.squad_name || "Unassigned").toString().trim();
-        const displaySquad = rawSquad === "NULL" ? "UNASSIGNED" : rawSquad.toUpperCase();
-        const squadLabel = document.getElementById("lbl-squad");
-        
-        if (squadLabel) {
-            squadLabel.textContent = "Squad " + displaySquad;
-            console.log(`Set squad name to: ${displaySquad}`);
-        } else {
-            console.error("Squad label element not found");
-        }
-
-        // 2. 更新背景顏色
-        const teamTabBg = document.querySelector("#tab-team .absolute.inset-0");
-        if (!teamTabBg) {
-            console.error("Team tab background element not found");
-            return false;
-        }
-
-        let squadColor = guestData.squad_colour || "";
-        squadColor = squadColor.trim();
-        
-        // 檢查顏色值是否有效
-        if (squadColor && squadColor !== "NULL") {
-            try {
-                // 確保顏色格式正確（加上#前綴如果沒有）
-                const hexColor = squadColor.startsWith("#") ? squadColor : ("#" + squadColor);
-                // 簡單驗證十六進制顏色格式
-                if (/^#[0-9A-F]{3,6}$/i.test(hexColor)) {
-                    teamTabBg.style.backgroundColor = hexColor;
-                    console.log(`Applied team color: ${hexColor}`);
-                } else {
-                    console.warn(`Invalid color format: ${squadColor}, using default`);
-                    teamTabBg.style.backgroundColor = "#888888"; // 默認灰色
-                }
-            } catch (err) {
-                console.error("Error setting team color:", err);
-                teamTabBg.style.backgroundColor = "#888888"; // 出錯時使用默認灰色
-            }
-        } else {
-            // 無顏色或顏色為"NULL"時使用默認值
-            teamTabBg.style.backgroundColor = "#888888";
-            console.log("No valid squad color, using default");
-        }
-        
-        return true;
-    }
-
-    // 2) Base Drink Slots from squad_drinkslot
-    let drinkSlots = parseInt(guestData.squad_drinkslot || "0", 10);
-    if (Number.isNaN(drinkSlots)) drinkSlots = 0;
-
-    // 3) +1 penalty if now is 90 mins past checkin_time and no mission completion
-    const penaltyText = document.getElementById("txt-penalty");
-    if (penaltyText) penaltyText.classList.add("hidden"); // Hide by default
-    
-    if (guestData.checkin_time) {
-        const checkinDate = new Date(guestData.checkin_time);
-        const minsPast = (Date.now() - checkinDate.getTime()) / 90000;
-        const taskPt = parseInt(guestData.ind_taskpt || "0", 10);
-        // If 60+ minutes have passed and no points
-        if (minsPast >= 60 && taskPt === 0) {
-            drinkSlots += 1;
-            if (penaltyText) penaltyText.classList.remove("hidden"); // Show penalty phrase
-        }
-    }
-
-    // Write drink slots to BOTH places (Home big number + Profile mini card)
-    // Home: the big number currently has no id, so we add minimal targeting.
-    const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
-    if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
-
-    const profileDrinkNumber = document.querySelector("#tab-profile #lbl-drink-slots-mini")
-        ?.parentElement?.querySelector(".font-bold.text-var--red.text-xl.handwritten");
-    if (profileDrinkNumber) profileDrinkNumber.textContent = String(drinkSlots);
-
-    // Also keep the title text consistent
-    document.getElementById("lbl-drink-slots").textContent = "Drink Slots";
-
-    // --- UBER MATCH LOGIC ---
+    // - UBER MATCH LOGIC
     const uberToggleWrapper = document.getElementById('btn-uber-toggle'); 
     const uberToggleText = document.getElementById('uber-toggle-text'); 
     const uberToggleKnob = document.getElementById('uber-toggle-knob'); 
@@ -139,7 +34,7 @@ async function populateUIWithGuestData() {
     const districtSelect = document.getElementById('uber-district-select');
     const uberHint = document.getElementById('uber-hint'); 
 
-    // 1. Safely parse the uber_match state (handles null, undefined, boolean, and strings)
+    // Safely parse the uber_match state (handles null, undefined, boolean, and strings)
     const rawUber = guestData.uber_match || guestData.ubermatch || "FALSE"; 
     const isUber = String(rawUber).toUpperCase() === 'TRUE';
 
@@ -316,7 +211,7 @@ async function populateUIWithGuestData() {
         });
     }
 
-    // Saving the Drunk Pick-up Form:
+    // Drunk Pick-up
     const btnSaveDrunk = document.getElementById('btn-save');
     if (btnSaveDrunk) {
         btnSaveDrunk.onclick = async function() {
@@ -360,6 +255,143 @@ async function populateUIWithGuestData() {
             }, 3000);
         };
     }
+
+
+    // 
+    // === --- PRE-EVENT --- ===
+    //
+
+    // --- HOME ---
+    // Submission of Quick Survey to Database:
+    const btnSubmitSurvey = document.getElementById('btn-submit-survey');
+    if (btnSubmitSurvey) {
+        btnSubmitSurvey.onclick = async function() {
+            const payload = {
+                uid: guestData.uid,
+                allergy: document.getElementById('sv-allergy-cb').checked,
+                allergy_type: document.getElementById('sv-allergy-text').value.trim(),
+                veg: document.getElementById('sv-veg').checked,    // REMOVED -cb
+                halal: document.getElementById('sv-halal').checked, // REMOVED -cb
+                eta: document.getElementById('sv-arrival-select').value,
+                notes: document.getElementById('sv-notes').value.trim()
+            };
+
+            console.log("DB Update: Inserting into Survey table:", payload);
+            // SUPABASE:
+            // Use upsert to allow them to overwrite their survey if they submit again
+            await db.from('survey').upsert(payload, { onConflict: 'uid' });
+            
+            
+            // Close modal
+            document.getElementById('survey-modal').classList.add('hidden');
+            document.getElementById('survey-modal').classList.remove('flex');
+        };
+    }
+    
+    //
+    // === --- EVENT MODE TRIGGER --- ===
+    //
+
+    const rawCheckin = (guestData.checkin_time) ? String(guestData.checkin_time).trim() : "";
+    const isCheckedIn = rawCheckin !== "" && rawCheckin.toUpperCase() !== "NULL";
+    
+    // Explicitly call to switch home tab layouts
+    if (typeof updateHomeTabLayout === 'function') {
+        updateHomeTabLayout(isCheckedIn);
+    }
+
+    //
+    // === --- EVENT --- ===
+    //
+
+    // --- GENERAL ---
+
+    // - SQUAD COLOUR LOGICS
+    let squadColour = '#2563EB'; // Fallback blue
+    if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
+        squadColour = guestData.squad_colour.startsWith('#') 
+            ? guestData.squad_colour 
+            : `#${guestData.squad_colour}`;
+    }
+
+    const squadLbl = document.getElementById("lbl-squad");
+    if (squadLbl) squadLbl.textContent = (guestData.squad_name || "Unassigned").toString().toUpperCase();
+
+    const teamBg = document.getElementById("team-bg");
+    if (teamBg) teamBg.style.backgroundColor = squadColour;
+
+  
+
+    // --- MISSION ---
+
+    // - RENDER MISSION CARDS
+    if (typeof renderMissions === 'function') {
+        renderMissions(gameData, squadColour);
+    }      
+
+    // - DRINK SLOT LOGIC
+    let drinkSlots = 3; // Base amount
+    let isPenalty = false;
+    let gameData = null;
+
+    if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
+        try {
+            const { data, error } = await supabase
+                .from('game')
+                .select('*')
+                .eq('squad_name', guestData.squad_name)
+                .single();
+            if (!error && data) gameData = data;
+        } catch (e) {
+            console.error("Error fetching game data:", e);
+        }
+    }
+
+    const gamesList = ['1_photo', '2_buy', '3_iq', '4_posture', '5_lyrics'];
+    if (gameData) {
+        let emptyCount = 0;
+        gamesList.forEach(g => {
+            if (gameData[g] === null || gameData[g] === "") emptyCount++;
+        });
+        drinkSlots += emptyCount;
+        
+        // Target: 20:30 HK time (12:30 UTC)
+        const now = new Date();
+        const penaltyTime = new Date('2026-03-28T20:30:00+08:00'); 
+        
+        if (now >= penaltyTime && drinkSlots === 8) { // 3 Base + 5 empty games
+            isPenalty = true;
+        } else {
+            isPenalty = gameData.penalty === true;
+        }
+    } else {
+        // Fallback if game row does not exist yet 
+        drinkSlots = 8;
+        const now = new Date();
+        const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
+        if (now >= penaltyTime) isPenalty = true;
+    }
+
+    if (isPenalty) drinkSlots += 6;
+
+    // Write computed drink slots to UI (Home big number + Profile mini card)
+    const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
+    if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
+
+    const profileDrinkNumber = document.querySelector("#tab-profile #lbl-drink-slots-mini")
+        ?.parentElement?.querySelector(".font-bold.text-var--red.text-xl.handwritten");
+    if (profileDrinkNumber) profileDrinkNumber.textContent = String(drinkSlots);
+
+    const penaltyText = document.getElementById("txt-penalty");
+    if (penaltyText) {
+        if (isPenalty) penaltyText.classList.remove("hidden");
+        else penaltyText.classList.add("hidden");
+    }
+
+    // --- SQUAD ---
+    
+
+
 
     // ADD THESE TWO LINES AT THE VERY END
     updateStatusCard(); 
