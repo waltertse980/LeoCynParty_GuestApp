@@ -307,7 +307,7 @@ async function populateUIWithGuestData() {
     // --- GENERAL ---
 
     // - SQUAD COLOUR LOGICS
-    let squadColour = '#2563EB'; // Fallback blue
+    let squadColour = '#777777'; // Fallback grey
     if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
         squadColour = guestData.squad_colour.startsWith('#') 
             ? guestData.squad_colour 
@@ -320,6 +320,25 @@ async function populateUIWithGuestData() {
     const teamBg = document.getElementById("team-bg");
     if (teamBg) teamBg.style.backgroundColor = squadColour;
 
+    // - FETCH GAME DATA
+    let drinkSlots = 3; // Base amount
+    let isPenalty = false;
+    let gameData = null;
+
+    if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
+        try {
+            // Await the fetch so gameData is fully loaded before we proceed
+            const { data, error } = await db
+                .from('game')
+                .select('*')
+                .eq('squad_name', guestData.squad_name)
+                .single();
+            if (!error && data) gameData = data;
+        } catch (e) {
+            console.error("Error fetching game data:", e);
+        }
+    }
+
     // --- MISSION ---
 
     // - RENDER MISSION CARDS
@@ -327,6 +346,7 @@ async function populateUIWithGuestData() {
         renderMissions(gameData, squadColour);
     }      
 
+    // - CALCULATE DRINK SLOTS
     const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics', '5_photo'];
     if (gameData) {
         let emptyCount = 0;
@@ -353,7 +373,7 @@ async function populateUIWithGuestData() {
 
     if (isPenalty) drinkSlots += 6;
 
-    // - Write computed drink slots to UI
+    // - WRITE DRINK SLOTS TO UI
     const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
     if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
 
@@ -369,53 +389,52 @@ async function populateUIWithGuestData() {
 
     // --- SQUAD ---
     
-    // - MATES FETCHING
+    // - FETCH TEAMMATES
     const teamMembersList = document.getElementById("team-members-list");
     if (teamMembersList) {
         teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i> Loading squad...</div>`;
         
         if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
-            (async () => {
-                try {
-                    const { data: teammates } = await supabase
-                        .from('profile')
-                        .select('uid, givenname, chinese_name')
-                        .eq('squad_name', guestData.squad_name);
+            try {
+                // Await directly without an IIFE wrapper
+                const { data: teammates } = await db
+                    .from('profile')
+                    .select('uid, givenname, chinese_name')
+                    .eq('squad_name', guestData.squad_name);
+                
+                if (teammates) {
+                    const isZhMatch = document.body.classList.contains('lang-zh');
                     
-                    if (teammates) {
-                        const isZhMatch = document.body.classList.contains('lang-zh');
+                    // Exclude guest_000 and guest_088 through guest_097
+                    const filtered = teammates.filter(member => {
+                        if (!member.uid.startsWith('guest_')) return false;
+                        const num = parseInt(member.uid.replace('guest_', ''), 10);
+                        return num !== 0 && !(num >= 88 && num <= 97);
+                    });
+
+                    let listHtml = '';
+                    filtered.forEach(member => {
+                        const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
+                        const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
+                        const displayName = isZhMatch && chi ? chi : (given || member.uid);
                         
-                        // Exclude guest_000 and guest_088 through guest_097
-                        const filtered = teammates.filter(member => {
-                            if (!member.uid.startsWith('guest_')) return false;
-                            const num = parseInt(member.uid.replace('guest_', ''), 10);
-                            return num !== 0 && !(num >= 88 && num <= 97);
-                        });
+                        // Highlight the active user
+                        const isMe = member.uid === guestData.uid;
+                        const nameClasses = isMe 
+                            ? "font-bold text-white bg-black/40 px-4 py-2 rounded-full shadow-[2px_2px_0_0_#000] border border-white/20" 
+                            : "font-mono text-white text-sm bg-black/10 px-4 py-1.5 rounded-full";
+                        const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
 
-                        let listHtml = '';
-                        filtered.forEach(member => {
-                            const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
-                            const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
-                            const displayName = isZhMatch && chi ? chi : (given || member.uid);
-                            
-                            // Highlight the active user
-                            const isMe = member.uid === guestData.uid;
-                            const nameClasses = isMe 
-                                ? "font-bold text-white bg-black/40 px-4 py-2 rounded-full shadow-[2px_2px_0_0_#000] border border-white/20" 
-                                : "font-mono text-white text-sm bg-black/10 px-4 py-1.5 rounded-full";
-                            const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
+                        listHtml += `<div class="${nameClasses}">${displayName}${meBadge}</div>`;
+                    });
 
-                            listHtml += `<div class="${nameClasses}">${displayName}${meBadge}</div>`;
-                        });
-
-                        if (listHtml === '') listHtml = `<div class="text-xs font-mono text-white/70">Only you so far!</div>`;
-                        teamMembersList.innerHTML = listHtml;
-                    }
-                } catch (e) {
-                    console.error("Error fetching teammates:", e);
-                    teamMembersList.innerHTML = '';
+                    if (listHtml === '') listHtml = `<div class="text-xs font-mono text-white/70">Only you so far!</div>`;
+                    teamMembersList.innerHTML = listHtml;
                 }
-            })();
+            } catch (e) {
+                console.error("Error fetching teammates:", e);
+                teamMembersList.innerHTML = '';
+            }
         } else {
              teamMembersList.innerHTML = '';
         }
@@ -423,8 +442,8 @@ async function populateUIWithGuestData() {
 
     // ADD THESE TWO LINES AT THE VERY END
     updateStatusCard(); 
-    setRandomTip();
-    
+    if (typeof setRandomTip === 'function') setRandomTip();
+
     // Initialize Notice logic and check admin rights
     setupNoticeAdmin();
     loadNotices();
@@ -584,14 +603,17 @@ const PARTY_TIPS = [
 // --- MISSION LOGIC ---
 function renderMissions(gameData, squadColour) {
     const header = document.getElementById("mission-header");
-    if (header && squadColour) header.style.backgroundColor = squadColour;
-    
+    // Explicitly update background colour if squadColour is provided
+    if (header && squadColour) {
+        header.style.backgroundColor = squadColour;
+    }
+
     const games = [
-        { id: '5_photo', title: 'Game 1', admins: 'Admin A, Admin B' },
-        { id: '1_buy', title: 'Game 2', admins: 'Admin C, Admin D' },
-        { id: '2_iq', title: 'Game 3', admins: 'Admin E, Admin F' },
-        { id: '3_pose', title: 'Game 4', admins: 'Admin G, Admin H' },
-        { id: '4_lyrics', title: 'Game 5', admins: 'Admin I, Admin J' }
+        { id: '1_buy', title: 'Game 1', admins: 'Admin C, Admin D' },
+        { id: '2_iq', title: 'Game 2', admins: 'Admin E, Admin F' },
+        { id: '3_pose', title: 'Game 3', admins: 'Admin G, Admin H' },
+        { id: '4_lyrics', title: 'Game 4', admins: 'Admin I, Admin J' },
+        { id: '5_photo', title: 'Game 5', admins: 'Admin A, Admin B' }
     ];
     
     let completedCount = 0;
@@ -630,7 +652,7 @@ function renderMissions(gameData, squadColour) {
             </div>
         `;
     });
-    
+
     const container = document.getElementById("mission-cards-container");
     if (container) container.innerHTML = cardsHtml;
     
