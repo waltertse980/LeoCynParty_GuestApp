@@ -320,8 +320,6 @@ async function populateUIWithGuestData() {
     const teamBg = document.getElementById("team-bg");
     if (teamBg) teamBg.style.backgroundColor = squadColour;
 
-  
-
     // --- MISSION ---
 
     // - RENDER MISSION CARDS
@@ -329,25 +327,7 @@ async function populateUIWithGuestData() {
         renderMissions(gameData, squadColour);
     }      
 
-    // - DRINK SLOT LOGIC
-    let drinkSlots = 3; // Base amount
-    let isPenalty = false;
-    let gameData = null;
-
-    if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
-        try {
-            const { data, error } = await supabase
-                .from('game')
-                .select('*')
-                .eq('squad_name', guestData.squad_name)
-                .single();
-            if (!error && data) gameData = data;
-        } catch (e) {
-            console.error("Error fetching game data:", e);
-        }
-    }
-
-    const gamesList = ['1_photo', '2_buy', '3_iq', '4_posture', '5_lyrics'];
+    const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics', '5_photo'];
     if (gameData) {
         let emptyCount = 0;
         gamesList.forEach(g => {
@@ -355,17 +335,16 @@ async function populateUIWithGuestData() {
         });
         drinkSlots += emptyCount;
         
-        // Target: 20:30 HK time (12:30 UTC)
+        // Target: 20:30 HK time
         const now = new Date();
         const penaltyTime = new Date('2026-03-28T20:30:00+08:00'); 
         
-        if (now >= penaltyTime && drinkSlots === 8) { // 3 Base + 5 empty games
+        if (now >= penaltyTime && drinkSlots === 8) { 
             isPenalty = true;
         } else {
             isPenalty = gameData.penalty === true;
         }
     } else {
-        // Fallback if game row does not exist yet 
         drinkSlots = 8;
         const now = new Date();
         const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
@@ -374,7 +353,7 @@ async function populateUIWithGuestData() {
 
     if (isPenalty) drinkSlots += 6;
 
-    // Write computed drink slots to UI (Home big number + Profile mini card)
+    // - Write computed drink slots to UI
     const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
     if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
 
@@ -390,8 +369,57 @@ async function populateUIWithGuestData() {
 
     // --- SQUAD ---
     
+    // - MATES FETCHING
+    const teamMembersList = document.getElementById("team-members-list");
+    if (teamMembersList) {
+        teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i> Loading squad...</div>`;
+        
+        if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
+            (async () => {
+                try {
+                    const { data: teammates } = await supabase
+                        .from('profile')
+                        .select('uid, givenname, chinese_name')
+                        .eq('squad_name', guestData.squad_name);
+                    
+                    if (teammates) {
+                        const isZhMatch = document.body.classList.contains('lang-zh');
+                        
+                        // Exclude guest_000 and guest_088 through guest_097
+                        const filtered = teammates.filter(member => {
+                            if (!member.uid.startsWith('guest_')) return false;
+                            const num = parseInt(member.uid.replace('guest_', ''), 10);
+                            return num !== 0 && !(num >= 88 && num <= 97);
+                        });
 
+                        let listHtml = '';
+                        filtered.forEach(member => {
+                            const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
+                            const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
+                            const displayName = isZhMatch && chi ? chi : (given || member.uid);
+                            
+                            // Highlight the active user
+                            const isMe = member.uid === guestData.uid;
+                            const nameClasses = isMe 
+                                ? "font-bold text-white bg-black/40 px-4 py-2 rounded-full shadow-[2px_2px_0_0_#000] border border-white/20" 
+                                : "font-mono text-white text-sm bg-black/10 px-4 py-1.5 rounded-full";
+                            const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
 
+                            listHtml += `<div class="${nameClasses}">${displayName}${meBadge}</div>`;
+                        });
+
+                        if (listHtml === '') listHtml = `<div class="text-xs font-mono text-white/70">Only you so far!</div>`;
+                        teamMembersList.innerHTML = listHtml;
+                    }
+                } catch (e) {
+                    console.error("Error fetching teammates:", e);
+                    teamMembersList.innerHTML = '';
+                }
+            })();
+        } else {
+             teamMembersList.innerHTML = '';
+        }
+    }
 
     // ADD THESE TWO LINES AT THE VERY END
     updateStatusCard(); 
@@ -408,35 +436,22 @@ function updateHomeTabLayout(isCheckedIn) {
     const transportBtn = document.getElementById("btn-transport");
     const surveyBtn = document.getElementById("btn-survey");
     
-    const drinkCard = document.getElementById("home-drink-card");
-    const wifiCard = document.getElementById("home-wifi-card");
-    const tipsCard = document.getElementById("home-tips-card");
+    // We now toggle the section inside the status card
+    const tipsSection = document.getElementById("home-tips-section");
 
     if (isCheckedIn) {
-        // Hide "Before" elements
         if (preHeader) preHeader.classList.add("hidden");
         if (transportBtn) transportBtn.classList.add("hidden");
         if (surveyBtn) surveyBtn.classList.add("hidden");
         
-        // Show "After" elements
-        if (drinkCard) drinkCard.classList.remove("hidden");
-        if (wifiCard) wifiCard.classList.remove("hidden");
-        if (tipsCard) tipsCard.classList.remove("hidden");
-        
-        // Show correct Nav Tabs
+        if (tipsSection) tipsSection.classList.remove("hidden");
         toggleNavTabs(true);
     } else {
-        // Show "Before" elements
         if (preHeader) preHeader.classList.remove("hidden");
         if (transportBtn) transportBtn.classList.remove("hidden");
         if (surveyBtn) surveyBtn.classList.remove("hidden");
         
-        // Hide "After" elements
-        if (drinkCard) drinkCard.classList.add("hidden");
-        if (wifiCard) wifiCard.classList.add("hidden");
-        if (tipsCard) tipsCard.classList.add("hidden");
-        
-        // Show correct Nav Tabs
+        if (tipsSection) tipsSection.classList.add("hidden");
         toggleNavTabs(false);
     }
 }
@@ -572,11 +587,11 @@ function renderMissions(gameData, squadColour) {
     if (header && squadColour) header.style.backgroundColor = squadColour;
     
     const games = [
-        { id: '1_photo', title: 'Game 1', admins: 'Admin A, Admin B' },
-        { id: '2_buy', title: 'Game 2', admins: 'Admin C, Admin D' },
-        { id: '3_iq', title: 'Game 3', admins: 'Admin E, Admin F' },
-        { id: '4_posture', title: 'Game 4', admins: 'Admin G, Admin H' },
-        { id: '5_lyrics', title: 'Game 5', admins: 'Admin I, Admin J' }
+        { id: '5_photo', title: 'Game 1', admins: 'Admin A, Admin B' },
+        { id: '1_buy', title: 'Game 2', admins: 'Admin C, Admin D' },
+        { id: '2_iq', title: 'Game 3', admins: 'Admin E, Admin F' },
+        { id: '3_pose', title: 'Game 4', admins: 'Admin G, Admin H' },
+        { id: '4_lyrics', title: 'Game 5', admins: 'Admin I, Admin J' }
     ];
     
     let completedCount = 0;
