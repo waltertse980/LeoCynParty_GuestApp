@@ -92,17 +92,21 @@
                     </div>
                 </div>
             </div>
-
             <div class="p-6 space-y-6">
-                <div id="status-card" class="card-sketch p-4 flex items-center gap-4 bg-white">
-                    <div id="status-icon" class="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center">
-                        <i id="status-icon-icon" class="fa-solid fa-clock text-yellow-700"></i>
+                <div id="status-card" class="card-sketch p-4 flex flex-col gap-4 bg-white relative">
+                    <div class="flex items-center gap-4">
+                        <div id="status-icon" class="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center">
+                            <i id="status-icon-icon" class="fa-solid fa-clock text-yellow-700"></i>
+                        </div>
+                        <div>
+                            <h3 id="status-text" class="font-bold uppercase text-xs tracking-tight"></h3>
+                            <p id="status-subtext" class="text-[10px] text-gray-500" data-i18n="home_doors_open"></p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 id="status-text" class="font-bold uppercase text-xs tracking-tight">狀態：即將開始…</h3>
-                        <p id="status-subtext"
-                        class="text-[10px] text-gray-500"
-                        data-i18n="home_doors_open">"Doors open at 18:30, 28 Mar 2026."</p>
+                    <!-- NEW: Collapsed Party Tips integrated here -->
+                    <div id="home-tips-section" class="hidden border-t border-gray-300 pt-3">
+                        <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-1" data-i18n="party_tip_title">Party Tip</h3>
+                        <p id="txt-party-tip" class="text-xs font-mono text-gray-700"></p>
                     </div>
                 </div>
 
@@ -200,38 +204,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div id="home-drink-card" class="bg-black text-white p-5 rounded-lg shadow-[4px_4px_0px_0px_rgba(179,42,25,1)] border-2 border-[var(--red)] relative overflow-hidden hidden">
-                    <div class="relative z-10 flex justify-between items-center">
-                        <div>
-                            <h3 id="lbl-drink-slots" class="font-bold mono text-xl text-[var(--red)]">Drink Slots</h3>
-                            <div id="txt-penalty" class="mt-2 bg-[var(--red)] text-white text-[10px] px-2 py-1 inline-block font-bold uppercase border border-white">
-                                ⚠️ Penalty Active: "Chase Progress"
-                            </div>
-                        </div>
-                        <div class="text-5xl font-black mono text-white">3</div>
-                    </div>
-                </div>
-
-                <div id="home-wifi-card" class="card-sketch p-4 bg-white hidden">
-                    <h3 class="font-bold text-10px uppercase flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-wifi text-var--red"></i>
-                        WiFi
-                    </h3>
-                    <div class="text-xs font-mono">
-                        <div>Network: <span id="wifi-ssid">EVENT_WIFI_NAME</span></div>
-                        <div>Password: <span id="wifi-pass">EVENT_WIFI_PASSWORD</span></div>
-                    </div>
-                </div>
-
-                <div id="home-tips-card" class="card-sketch p-4 bg-white hidden">
-                    <h3 class="font-bold text-10px uppercase flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-lightbulb text-var--red"></i>
-                        Party Tips
-                    </h3>
-                    <p id="txt-party-tip" class="text-xs text-gray-700"></p>
-                </div>
-
             </div>
         </div>
 
@@ -370,8 +342,13 @@
             <div id="team-bg" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center transition-colors">
                 <i class="fa-solid fa-users text-6xl mb-6 text-black opacity-50"></i>
                 <h2 class="text-sm font-mono uppercase tracking-widest mb-2 border-b-2 border-black pb-1 text-black font-bold">Your Squad</h2>
-                <h1 id="lbl-squad" class="text-5xl font-black mb-8 mono rotate-[-5deg] drop-shadow-[4px_4px_0_#000] text-white">NEON BLUE</h1>
-                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2 shadow-[2px_2px_0_0_#000]">Find this color in the crowd.</p>
+                <h1 id="lbl-squad" class="text-5xl font-black mb-6 mono rotate-[-5deg] drop-shadow-[4px_4px_0_#000] text-white">NEON BLUE</h1>
+                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2 shadow-[2px_2px_0_0_#000] mb-6">Find this color in the crowd.</p>
+                
+                <!-- NEW: Teammates List Container -->
+                <div id="team-members-list" class="flex flex-col gap-2 items-center w-full max-h-[40vh] overflow-y-auto no-scrollbar">
+                    <!-- JavaScript will inject teammates here -->
+                </div>
             </div>
         </div>
 
