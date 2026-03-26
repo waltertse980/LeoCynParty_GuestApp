@@ -523,7 +523,8 @@ function updateStatusCard() {
 function setRandomTip() {
     const el = document.getElementById("txt-party-tip");
     if (!el) return;
-    el.textContent = PARTY_TIPS[Math.floor(Math.random() * PARTY_TIPS.length)];
+    const tip = PARTY_TIPS[Math.floor(Math.random() * PARTY_TIPS.length)];
+    el.textContent = `"${tip}"`;
 }
 
 function toggleAllergyInput() {
