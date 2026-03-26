@@ -256,7 +256,6 @@ async function populateUIWithGuestData() {
         };
     }
 
-
     // 
     // === --- PRE-EVENT --- ===
     //
@@ -390,13 +389,13 @@ async function populateUIWithGuestData() {
     // --- SQUAD ---
     
     // - FETCH TEAMMATES
+    // --- 5. FETCH TEAMMATES ---
     const teamMembersList = document.getElementById("team-members-list");
     if (teamMembersList) {
         teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i> Loading squad...</div>`;
         
         if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
             try {
-                // Await directly without an IIFE wrapper
                 const { data: teammates } = await db
                     .from('profile')
                     .select('uid, givenname, chinese_name')
@@ -405,30 +404,36 @@ async function populateUIWithGuestData() {
                 if (teammates) {
                     const isZhMatch = document.body.classList.contains('lang-zh');
                     
-                    // Exclude guest_000 and guest_088 through guest_097
                     const filtered = teammates.filter(member => {
                         if (!member.uid.startsWith('guest_')) return false;
                         const num = parseInt(member.uid.replace('guest_', ''), 10);
                         return num !== 0 && !(num >= 88 && num <= 97);
                     });
 
-                    let listHtml = '';
-                    filtered.forEach(member => {
-                        const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
-                        const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
-                        const displayName = isZhMatch && chi ? chi : (given || member.uid);
-                        
-                        // Highlight the active user
-                        const isMe = member.uid === guestData.uid;
-                        const nameClasses = isMe 
-                            ? "font-bold text-white bg-black/40 px-4 py-2 rounded-full shadow-[2px_2px_0_0_#000] border border-white/20" 
-                            : "font-mono text-white text-sm bg-black/10 px-4 py-1.5 rounded-full";
-                        const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
+                    // Start the single card container
+                    let listHtml = `<div class="bg-black/20 border-2 border-white/50 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center">`;
 
-                        listHtml += `<div class="${nameClasses}">${displayName}${meBadge}</div>`;
-                    });
+                    if (filtered.length === 1 && filtered[0].uid === guestData.uid) {
+                        listHtml += `<div class="text-xs font-mono text-white/90">Only you so far!</div>`;
+                    } else {
+                        filtered.forEach(member => {
+                            const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
+                            const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
+                            const displayName = isZhMatch && chi ? chi : (given || member.uid);
+                            
+                            const isMe = member.uid === guestData.uid;
+                            const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
+                            
+                            // Emphasize the current user, regular styling for teammates
+                            const nameStyle = isMe 
+                                ? "font-black text-white text-lg tracking-wide drop-shadow-[2px_2px_0_#000]" 
+                                : "font-mono font-bold text-white/90 text-sm";
 
-                    if (listHtml === '') listHtml = `<div class="text-xs font-mono text-white/70">Only you so far!</div>`;
+                            listHtml += `<div class="${nameStyle}">${displayName}${meBadge}</div>`;
+                        });
+                    }
+
+                    listHtml += `</div>`; // Close card container
                     teamMembersList.innerHTML = listHtml;
                 }
             } catch (e) {
@@ -594,28 +599,47 @@ function updateCountdown() {
 }
 
 const PARTY_TIPS = [
-    "Say hi to someone from a different group—instant new friend.",
-    "Drink water between rounds. Your future self will thank you.",
-    "Use Uber matching if you’re heading the same way.",
-    "Set your Drunk Pick-up Contact before you need it."
+    "Save water, drink beer",
+    "A party without alcohol is just a meeting",
+    "When life gives you lemons, add vodka",
+    "Stay hydrated",
+    "According to chemistry, alcohol is a solution",
+    "Size does matter - no one wants a small glass of wine"
 ];
 
 // --- MISSION LOGIC ---
 function renderMissions(gameData, squadColour) {
+    const isZh = document.body.classList.contains('lang-zh');
+
     const header = document.getElementById("mission-header");
     // Explicitly update background colour if squadColour is provided
     if (header && squadColour) {
         header.style.backgroundColor = squadColour;
     }
 
+    // Translate Header Title
+    const titleEl = document.getElementById("lbl-missions-title");
+    if (titleEl) titleEl.textContent = isZh ? "任務" : "Mission";
+
+    // Translate Progress Label Text (keeps the % span intact)
+    const progressTextEl = document.getElementById("mission-progress-text");
+    const currentProgress = progressTextEl ? progressTextEl.textContent : "0%";
+    const progressLblEl = document.getElementById("lbl-progress");
+    if (progressLblEl) {
+        progressLblEl.innerHTML = `${isZh ? "完成度:" : "Progress:"} <span id="mission-progress-text">${currentProgress}</span>`;
+    }
+
     const games = [
-        { id: '1_buy', title: 'Game 1', admins: 'Admin C, Admin D' },
-        { id: '2_iq', title: 'Game 2', admins: 'Admin E, Admin F' },
-        { id: '3_pose', title: 'Game 3', admins: 'Admin G, Admin H' },
-        { id: '4_lyrics', title: 'Game 4', admins: 'Admin I, Admin J' },
-        { id: '5_photo', title: 'Game 5', admins: 'Admin A, Admin B' }
+        { id: '1_buy', title: isZh ? '任務 1' : 'Game 1', admins: 'Admin C, Admin D' },
+        { id: '2_iq', title: isZh ? '任務 2' : 'Game 2', admins: 'Admin E, Admin F' },
+        { id: '3_pose', title: isZh ? '任務 3' : 'Game 3', admins: 'Admin G, Admin H' },
+        { id: '4_lyrics', title: isZh ? '任務 4' : 'Game 4', admins: 'Admin I, Admin J' },
+        { id: '5_photo', title: isZh ? '任務 5' : 'Game 5', admins: 'Admin A, Admin B' }
     ];
     
+    const adminLabel = isZh ? "負責搞事:" : "Designated Troublemaker(s):";
+    const marksLabel = isZh ? "20分" : "20 marks";
+
     let completedCount = 0;
     let cardsHtml = '';
     
@@ -631,19 +655,17 @@ function renderMissions(gameData, squadColour) {
             
         cardsHtml += `
             <div class="card-sketch border-2 border-black bg-white overflow-hidden shadow-[4px_4px_0_0_#000] mb-4">
-                <!-- Header (Always Visible) -->
                 <div class="${headerBg} text-white p-4 flex justify-between items-center cursor-pointer active:brightness-90 transition" onclick="this.nextElementSibling.classList.toggle('hidden')">
                     <h4 class="font-bold text-sm uppercase mono tracking-widest">${g.title}</h4>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
-                <!-- Body (Collapsible) -->
                 <div class="hidden flex-col bg-white text-black">
                     <div class="p-4 text-xs font-mono text-gray-600 leading-relaxed">
-                        Admins-in-charge: <br/>${g.admins}
+                        ${adminLabel} <br/>${g.admins}
                     </div>
                     <div class="border-t border-gray-300 mx-4"></div>
                     <div class="p-4 flex justify-between items-center">
-                        <span class="font-bold text-xs">20 marks / 20分</span>
+                        <span class="font-bold text-xs">${marksLabel}</span>
                         <div class="w-6 h-6 border-2 border-black flex items-center justify-center bg-gray-50 shadow-[2px_2px_0_0_#000]">
                             ${checkboxContent}
                         </div>
@@ -1066,6 +1088,9 @@ function nav(tabId) {
                 btnOpenCamera.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
+    }
+    if (tabId === 'home') {
+        if (typeof setRandomTip === 'function') setRandomTip();
     }
 }
 

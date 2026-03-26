@@ -7,6 +7,8 @@
             home_btn_transport: "TRANSPORTATION GUIDE",
             home_btn_survey: "QUICK SURVEY",
 
+            party_tips_title: "Party Tips",
+
             transport_title: "Transportation Guide",
             transport_action: "Get Directions (Transit)",
             transport_desc: "We'll use your current location for the best route.",
@@ -88,6 +90,8 @@
             home_doors_open: "2026年3月28日 18:30 恭候",
             home_btn_transport: "交通指引",
             home_btn_survey: "事前問卷",
+
+            party_tips_title: "不負責任貼士",
 
             transport_title: "交通指引",
             transport_action: "CYN人指LEO",
