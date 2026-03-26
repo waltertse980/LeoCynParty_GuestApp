@@ -603,7 +603,6 @@ const PARTY_TIPS = [
     "Save water, drink beer",
     "A party without alcohol is just a meeting",
     "When life gives you lemons, add vodka",
-    "Stay hydrated",
     "According to chemistry, alcohol is a solution",
     "Size does matter - no one wants a small glass of wine"
 ];
