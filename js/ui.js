@@ -340,11 +340,6 @@ async function populateUIWithGuestData() {
 
     // --- MISSION ---
 
-    // - RENDER MISSION CARDS
-    if (typeof renderMissions === 'function') {
-        renderMissions(gameData, squadColour);
-    }      
-
     // - CALCULATE DRINK SLOTS
     const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics', '5_photo'];
     if (gameData) {
@@ -372,6 +367,11 @@ async function populateUIWithGuestData() {
 
     if (isPenalty) drinkSlots += 6;
 
+    // - RENDER MISSION CARDS
+    if (typeof renderMissions === 'function') {
+        renderMissions(gameData, squadColour, drinkSlots);
+    }     
+
     // - WRITE DRINK SLOTS TO UI
     const homeDrinkNumber = document.querySelector("#tab-home .text-5xl.font-black.handwritten");
     if (homeDrinkNumber) homeDrinkNumber.textContent = String(drinkSlots);
@@ -389,7 +389,6 @@ async function populateUIWithGuestData() {
     // --- SQUAD ---
     
     // - FETCH TEAMMATES
-    // --- 5. FETCH TEAMMATES ---
     const teamMembersList = document.getElementById("team-members-list");
     if (teamMembersList) {
         teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i> Loading squad...</div>`;
@@ -398,7 +397,7 @@ async function populateUIWithGuestData() {
             try {
                 const { data: teammates } = await db
                     .from('profile')
-                    .select('uid, givenname, chinese_name')
+                    .select('uid, givenname')
                     .eq('squad_name', guestData.squad_name);
                 
                 if (teammates) {
@@ -411,20 +410,21 @@ async function populateUIWithGuestData() {
                     });
 
                     // Start the single card container
-                    let listHtml = `<div class="bg-black/20 border-2 border-white/50 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center">`;
+                    let listHtml = `<div class="bg-black/20 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center">`;
 
                     if (filtered.length === 1 && filtered[0].uid === guestData.uid) {
                         listHtml += `<div class="text-xs font-mono text-white/90">Only you so far!</div>`;
                     } else {
                         filtered.forEach(member => {
-                            const given = (member.givenname && member.givenname !== "NULL") ? member.givenname : "";
-                            const chi = (member.chinese_name && member.chinese_name !== "NULL") ? member.chinese_name : given;
-                            const displayName = isZhMatch && chi ? chi : (given || member.uid);
+                            // Always use givenname in English only; fallback to uid if empty
+                            const displayName = (member.givenname && member.givenname !== "NULL") 
+                                ? member.givenname 
+                                : member.uid;
                             
                             const isMe = member.uid === guestData.uid;
+                            const isZhMatch = document.body.classList.contains('lang-zh');
                             const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
                             
-                            // Emphasize the current user, regular styling for teammates
                             const nameStyle = isMe 
                                 ? "font-black text-white text-lg tracking-wide drop-shadow-[2px_2px_0_#000]" 
                                 : "font-mono font-bold text-white/90 text-sm";
@@ -432,7 +432,6 @@ async function populateUIWithGuestData() {
                             listHtml += `<div class="${nameStyle}">${displayName}${meBadge}</div>`;
                         });
                     }
-
                     listHtml += `</div>`; // Close card container
                     teamMembersList.innerHTML = listHtml;
                 }
@@ -452,6 +451,7 @@ async function populateUIWithGuestData() {
     // Initialize Notice logic and check admin rights
     setupNoticeAdmin();
     loadNotices();
+    subscribeToGameUpdates();
 }
 
 // --- HOME LOGIC ---
@@ -620,21 +620,49 @@ function renderMissions(gameData, squadColour) {
     // Translate Header Title
     const titleEl = document.getElementById("lbl-missions-title");
     if (titleEl) titleEl.textContent = isZh ? "任務" : "Mission";
-
-    // Translate Progress Label Text (keeps the % span intact)
-    const progressTextEl = document.getElementById("mission-progress-text");
-    const currentProgress = progressTextEl ? progressTextEl.textContent : "0%";
+    
+    // Update progress label
     const progressLblEl = document.getElementById("lbl-progress");
     if (progressLblEl) {
-        progressLblEl.innerHTML = `${isZh ? "完成度:" : "Progress:"} <span id="mission-progress-text">${currentProgress}</span>`;
+        const currentProgress = document.getElementById("mission-progress-text")?.textContent || "0%";
+        progressLblEl.innerHTML = `${isZh ? "進度:" : "Progress:"} <span id="mission-progress-text">${currentProgress}</span>`;
+    }
+
+    // --- DRINK SLOT MEMO STICKER ---
+    // Fetch total drink slots sum asynchronously and inject the sticker
+    const stickerContainer = document.getElementById("mission-drink-sticker");
+    if (stickerContainer && drinkSlots !== undefined) {
+        (async () => {
+            let totalSlots = "?";
+            try {
+                const { data } = await db.from('game').select('drink_slot');
+                if (data && data.length > 0) {
+                    totalSlots = data.reduce((sum, row) => {
+                        const val = parseInt(row.drink_slot, 10);
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
+                }
+            } catch (e) {
+                console.error("Error fetching total drink slots:", e);
+            }
+
+            const label = isZh ? "轉盤位置" : "Wheel";
+            stickerContainer.innerHTML = `
+                <div class="bg-yellow-200 border border-yellow-400 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] px-3 py-2 rotate-[1.5deg] text-center min-w-[80px]"
+                     style="font-family: 'Architects Daughter', cursive;">
+                    <div class="text-[8px] font-bold text-yellow-800 uppercase tracking-widest mb-1">${label}</div>
+                    <div class="text-sm font-black text-black leading-none">${drinkSlots}<span class="text-[10px] font-normal text-gray-600">/${totalSlots}</span></div>
+                </div>
+            `;
+        })();
     }
 
     const games = [
-        { id: '1_buy', title: isZh ? '任務 1' : 'Game 1', admins: 'Admin C, Admin D' },
-        { id: '2_iq', title: isZh ? '任務 2' : 'Game 2', admins: 'Admin E, Admin F' },
-        { id: '3_pose', title: isZh ? '任務 3' : 'Game 3', admins: 'Admin G, Admin H' },
-        { id: '4_lyrics', title: isZh ? '任務 4' : 'Game 4', admins: 'Admin I, Admin J' },
-        { id: '5_photo', title: isZh ? '任務 5' : 'Game 5', admins: 'Admin A, Admin B' }
+        { id: '1_buy', title: '很想到無邊搜索', admins: '阿水, Ella' },
+        { id: '2_iq', title: '愛也單純到 會忘掉智商', admins: '肥鴨' },
+        { id: '3_pose', title: '忘記 美不美', admins: '蔡頭' },
+        { id: '4_lyrics', title: '由我來獨唱', admins: '曹Hei' },
+        { id: '5_photo', title: '吊在漁網上娛賓', admins: '一對新人' }
     ];
     
     const adminLabel = isZh ? "負責搞事:" : "Designated Troublemaker(s):";
@@ -683,6 +711,52 @@ function renderMissions(gameData, squadColour) {
     const progressBar = document.getElementById("mission-progress-bar");
     if (progressText) progressText.textContent = `${progress}%`;
     if (progressBar) progressBar.style.width = `${progress}%`;
+}
+
+function subscribeToGameUpdates() {
+    if (!guestData || !guestData.squad_name || guestData.squad_name.toUpperCase() === "UNASSIGNED") return;
+
+    // Prevent duplicate subscriptions on re-renders
+    if (window._gameSubscription) {
+        window._gameSubscription.unsubscribe();
+    }
+
+    window._gameSubscription = db
+        .channel('game-updates')
+        .on(
+            'postgres_changes',
+            {
+                event: '*', // INSERT, UPDATE, DELETE
+                schema: 'public',
+                table: 'game',
+                filter: `squad_name=eq.${guestData.squad_name}`
+            },
+            (payload) => {
+                console.log("Game table updated:", payload);
+                const updatedGameData = payload.new;
+
+                // Re-read current squad colour from guestData
+                let squadColour = '#777777';
+                if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
+                    squadColour = guestData.squad_colour.startsWith('#')
+                        ? guestData.squad_colour
+                        : `#${guestData.squad_colour}`;
+                }
+
+                // Recalculate drink slots from the fresh payload
+                const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics', '5_photo'];
+                let updatedDrinkSlots = 3;
+                gamesList.forEach(g => {
+                    if (updatedGameData[g] === null || updatedGameData[g] === "") updatedDrinkSlots++;
+                });
+                if (updatedGameData.penalty === true) updatedDrinkSlots += 6;
+
+                if (typeof renderMissions === 'function') {
+                    renderMissions(updatedGameData, squadColour, updatedDrinkSlots);
+                }
+            }
+        )
+        .subscribe();
 }
 
 // --- NOTICE BOARD LOGIC ---

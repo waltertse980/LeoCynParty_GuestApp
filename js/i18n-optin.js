@@ -35,6 +35,10 @@
             camera_scan_desc: "Scan the QR code at the Reception!",
             camera_btn: "Open Camera",
 
+            // TEAM TAB
+            squad_your_squad: "Your Squad",
+            squad_find_colour: "Find this color in the crowd.",     
+
             // PROFILE TAB
             uber_title: "Potential Uber Matches",
             uber_activate_hint: "Activate to look for uber buddies",
@@ -118,6 +122,10 @@
             camera_scanner: "掃瞄",
             camera_scan_desc: "去接待處掃碼報到!",
             camera_btn: "打開相機",
+
+            // TEAM TAB
+            squad_your_squad: "你嘅勾結勢力",
+            squad_find_colour: "搵同你都係一樣顏色嘅人！",
 
             // PROFILE TAB
             uber_title: "搵人夾Uber",
