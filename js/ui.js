@@ -1271,12 +1271,35 @@ function setupGuestRealtimeSubscriptions() {
     window.statusSub = db.channel('guest-status')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'status', filter: `uid=eq.${guestData.uid}` }, (payload) => {
             console.log('Live status update:', payload.new);
-            guestData.checkin_time = payload.new.checkin_time;
-            const isCheckedIn = guestData.checkin_time && guestData.checkin_time.toUpperCase() !== 'NULL';
             
-            // Instantly transition to Event Mode UI
+            // Track previous state to see if they JUST got checked in right now
+            const wasCheckedIn = guestData.checkin_time && String(guestData.checkin_time).toUpperCase() !== 'NULL';
+            
+            // Apply new data locally
+            guestData.checkin_time = payload.new.checkin_time;
+            const isCheckedIn = guestData.checkin_time && String(guestData.checkin_time).toUpperCase() !== 'NULL';
+
+            // Instantly transition visuals
             if (typeof updateHomeTabLayout === 'function') updateHomeTabLayout(isCheckedIn);
             if (typeof updateStatusCard === 'function') updateStatusCard();
+            
+            // 🌟 NEW: Auto-redirect and Refresh when check-in is detected 🌟
+            if (!wasCheckedIn && isCheckedIn) {
+                console.log("Check-in detected! Refreshing and jumping to Home tab...");
+                
+                // 1. Go back to the Home Tab automatically
+                if (typeof nav === 'function') {
+                    nav('home');
+                } else if (typeof navhome === 'function') {
+                    navhome(); 
+                }
+                
+                // 2. Completely refresh the UI state (Reloads game table, missions, drink slots, etc.)
+                if (typeof populateUIWithGuestData === 'function') {
+                    populateUIWithGuestData();
+                }
+            }
+            
         }).subscribe();
 
     // 2. Listen for Mission Scoring & Drink Slot Changes
