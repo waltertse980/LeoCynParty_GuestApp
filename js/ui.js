@@ -308,8 +308,8 @@ async function populateUIWithGuestData() {
     // - SQUAD COLOUR LOGICS
     let squadColour = '#777777'; // Fallback grey
     if (guestData.squad_colour && guestData.squad_colour !== "NULL") {
-        squadColour = guestData.squad_colour.startsWith('#') 
-            ? guestData.squad_colour 
+        squadColour = guestData.squad_colour.startsWith('#')
+            ? guestData.squad_colour
             : `#${guestData.squad_colour}`;
     }
 
@@ -320,19 +320,22 @@ async function populateUIWithGuestData() {
     if (teamBg) teamBg.style.backgroundColor = squadColour;
 
     // - FETCH GAME DATA
-    let drinkSlots = 3; // Base amount
-    let isPenalty = false;
+    // Must be declared and awaited BEFORE drinkSlots calculation and renderMissions
     let gameData = null;
+    const squadName = guestData.squad_name;
 
-    if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
+    if (squadName && squadName.toUpperCase() !== "UNASSIGNED") {
         try {
-            // Await the fetch so gameData is fully loaded before we proceed
-            const { data, error } = await db
+            const { data: fetchedGame, error: gameError } = await db
                 .from('game')
                 .select('*')
-                .eq('squad_name', guestData.squad_name)
+                .eq('squad_name', squadName)
                 .single();
-            if (!error && data) gameData = data;
+            if (!gameError && fetchedGame) {
+                gameData = fetchedGame;
+            } else if (gameError) {
+                console.warn("game fetch warning:", gameError.message);
+            }
         } catch (e) {
             console.error("Error fetching game data:", e);
         }
@@ -341,24 +344,26 @@ async function populateUIWithGuestData() {
     // --- MISSION ---
 
     // - CALCULATE DRINK SLOTS
+    let drinkSlots = 3;
+    let isPenalty = false;
     const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics', '5_photo'];
+
     if (gameData) {
         let emptyCount = 0;
         gamesList.forEach(g => {
-            if (gameData[g] === null || gameData[g] === "") emptyCount++;
+            if (gameData[g] === null || gameData[g] === undefined || gameData[g] === "") emptyCount++;
         });
         drinkSlots += emptyCount;
-        
-        // Target: 20:30 HK time
+
         const now = new Date();
-        const penaltyTime = new Date('2026-03-28T20:30:00+08:00'); 
-        
-        if (now >= penaltyTime && drinkSlots === 8) { 
+        const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
+        if (now >= penaltyTime && emptyCount === 5) {
             isPenalty = true;
         } else {
             isPenalty = gameData.penalty === true;
         }
     } else {
+        // No game row found — assume all tasks empty
         drinkSlots = 8;
         const now = new Date();
         const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
@@ -391,64 +396,64 @@ async function populateUIWithGuestData() {
     // - FETCH TEAMMATES
     const teamMembersList = document.getElementById("team-members-list");
     if (teamMembersList) {
-        teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i> Loading squad...</div>`;
-        
-        if (guestData.squad_name && guestData.squad_name.toUpperCase() !== "UNASSIGNED") {
+        teamMembersList.innerHTML = `<div class="text-xs font-mono text-white/70"><i class="fa-solid fa-spinner fa-spin"></i></div>`;
+
+        if (squadName && squadName.toUpperCase() !== "UNASSIGNED") {
             try {
-                const { data: teammates } = await db
+                const { data: teammates, error: teamError } = await db
                     .from('profile')
-                    .select('uid, givenname')
-                    .eq('squad_name', guestData.squad_name);
-                
-                if (teammates) {
+                    .select('uid, givenname, chinese_name')
+                    .eq('squad_name', squadName);
+
+                if (teamError) throw teamError;
+
+                if (teammates && teammates.length > 0) {
                     const isZhMatch = document.body.classList.contains('lang-zh');
-                    
+
+                    // Exclude guest_000 and guest_088 to guest_097
                     const filtered = teammates.filter(member => {
-                        if (!member.uid.startsWith('guest_')) return false;
+                        if (!member.uid || !member.uid.startsWith('guest_')) return false;
                         const num = parseInt(member.uid.replace('guest_', ''), 10);
                         return num !== 0 && !(num >= 88 && num <= 97);
                     });
 
-                    // Start the single card container
-                    let listHtml = `<div class="bg-black/20 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center">`;
-
-                    if (filtered.length === 1 && filtered[0].uid === guestData.uid) {
-                        listHtml += `<div class="text-xs font-mono text-white/90">Only you so far!</div>`;
+                    if (filtered.length === 0) {
+                        teamMembersList.innerHTML = `<div class="bg-black/20 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center"><div class="text-xs font-mono text-white/70">Only you so far!</div></div>`;
                     } else {
+                        let listHtml = `<div class="bg-black/20 p-6 w-full max-w-xs shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] flex flex-col gap-3 backdrop-blur-sm text-center">`;
+
                         filtered.forEach(member => {
-                            // Always use givenname in English only; fallback to uid if empty
-                            const displayName = (member.givenname && member.givenname !== "NULL") 
-                                ? member.givenname 
+                            const displayName = (member.givenname && member.givenname !== "NULL")
+                                ? member.givenname
                                 : member.uid;
-                            
+
                             const isMe = member.uid === guestData.uid;
-                            const isZhMatch = document.body.classList.contains('lang-zh');
                             const meBadge = isMe ? (isZhMatch ? " (我)" : " (Me)") : "";
-                            
-                            const nameStyle = isMe 
-                                ? "font-black text-white text-lg tracking-wide drop-shadow-[2px_2px_0_#000]" 
+                            const nameStyle = isMe
+                                ? "font-black text-white text-lg tracking-wide drop-shadow-[2px_2px_0_#000]"
                                 : "font-mono font-bold text-white/90 text-sm";
 
                             listHtml += `<div class="${nameStyle}">${displayName}${meBadge}</div>`;
                         });
+
+                        listHtml += `</div>`;
+                        teamMembersList.innerHTML = listHtml;
                     }
-                    listHtml += `</div>`; // Close card container
-                    teamMembersList.innerHTML = listHtml;
+                } else {
+                    teamMembersList.innerHTML = '';
                 }
             } catch (e) {
                 console.error("Error fetching teammates:", e);
                 teamMembersList.innerHTML = '';
             }
         } else {
-             teamMembersList.innerHTML = '';
+            teamMembersList.innerHTML = '';
         }
     }
 
     // ADD THESE TWO LINES AT THE VERY END
-    updateStatusCard(); 
+    updateStatusCard();
     if (typeof setRandomTip === 'function') setRandomTip();
-
-    // Initialize Notice logic and check admin rights
     setupNoticeAdmin();
     loadNotices();
     subscribeToGameUpdates();
