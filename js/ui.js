@@ -119,7 +119,7 @@ async function populateUIWithGuestData() {
                     let htmlContent = `<div class="text-[10px] font-bold text-green-700 uppercase mb-2">${headingPrefix}${displayDist}</div>`;
                     
                     if (exactMatches.length === 0 && routeMatches.length === 0) {
-                        const emptyText = isZhMatch ? "暫時未有順路嘅泥鯭...主動出擊搵人夾Uber啦!" : "no potential Uber buddies at the moment...";
+                        const emptyText = isZhMatch ? "暫時未有順路泥鯭...主動出擊搵人夾Uber啦!" : "no potential Uber buddies at the moment...";
                         htmlContent += `<div class="text-[10px] font-mono text-gray-400 mt-2" data-i18n="uber_match_empty">${emptyText}</div>`;
                     } else {
                         const renderUserRow = (match) => {
@@ -151,7 +151,7 @@ async function populateUIWithGuestData() {
                         }
 
                         if (routeMatches.length > 0) {
-                            const routeTitleText = isZhMatch ? "順路嘅潛在泥鯭友:" : "Potential co-riders sharing the same route:";
+                            const routeTitleText = isZhMatch ? "順路潛在泥鯭友:" : "Potential co-riders sharing the same route:";
                             htmlContent += `<div class="text-[9px] font-mono text-gray-500 mt-3 mb-1">${routeTitleText}</div>`;
                             routeMatches.forEach(match => { htmlContent += renderUserRow(match); });
                         }
@@ -356,7 +356,7 @@ async function populateUIWithGuestData() {
         drinkSlots += emptyCount;
 
         const now = new Date();
-        const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
+        const penaltyTime = new Date('2026-03-28T20:00:00+08:00');
         if (now >= penaltyTime && emptyCount === 5) {
             isPenalty = true;
         } else {
@@ -366,7 +366,7 @@ async function populateUIWithGuestData() {
         // No game row found — assume all tasks empty
         drinkSlots = 8;
         const now = new Date();
-        const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
+        const penaltyTime = new Date('2026-03-28T20:00:00+08:00');
         if (now >= penaltyTime) isPenalty = true;
     }
 
@@ -467,6 +467,7 @@ function updateHomeTabLayout(isCheckedIn) {
     
     // We now toggle the section inside the status card
     const tipsSection = document.getElementById("home-tips-section");
+    const timelineCard = document.getElementById("timeline-card");
 
     if (isCheckedIn) {
         if (preHeader) preHeader.classList.add("hidden");
@@ -474,6 +475,7 @@ function updateHomeTabLayout(isCheckedIn) {
         if (surveyBtn) surveyBtn.classList.add("hidden");
         
         if (tipsSection) tipsSection.classList.remove("hidden");
+        if (timelineCard) timelineCard.classList.remove("hidden");
         toggleNavTabs(true);
     } else {
         if (preHeader) preHeader.classList.remove("hidden");
@@ -481,6 +483,7 @@ function updateHomeTabLayout(isCheckedIn) {
         if (surveyBtn) surveyBtn.classList.remove("hidden");
         
         if (tipsSection) tipsSection.classList.add("hidden");
+        if (timelineCard) timelineCard.classList.add("hidden");
         toggleNavTabs(false);
     }
 }
@@ -655,8 +658,8 @@ function renderMissions(gameData, squadColour, drinkSlots) {
             stickerContainer.innerHTML = `
                 <div class="bg-yellow-200 border border-yellow-400 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] px-3 py-2 rotate-[1.5deg] text-center min-w-[80px]"
                      style="font-family: 'Architects Daughter', cursive;">
-                    <div class="text-[8px] font-bold text-yellow-800 uppercase tracking-widest mb-1">${label}</div>
-                    <div class="text-sm font-black text-black leading-none">${drinkSlots}<span class="text-[10px] font-normal text-gray-600">/${totalSlots}</span></div>
+                    <div class="text-[12px] font-bold text-yellow-800 uppercase tracking-widest mb-1">${label}</div>
+                    <div class="text-sm font-black text-black leading-none">${drinkSlots}<span class="text-[12px] font-normal text-gray-600">/${totalSlots}</span></div>
                 </div>
             `;
         })();
@@ -667,31 +670,31 @@ function renderMissions(gameData, squadColour, drinkSlots) {
             id: '1_buy', 
             title: '很想到無邊搜索', 
             admins: '阿水, Ella',
-            instruction: '內容:<br/>按搞事人指示，喺限時內交出指量數目嘅物品'
+            instruction: '內容:<br/>按搞事人指示，限時內交出指量數目物品'
         },
         { 
             id: '2_iq', 
             title: '愛也單純到 會忘掉智商', 
             admins: '肥鴨',
-            instruction: '內容:<br/>喺搞事人手中抽一份時事常識問答比賽題目作答，答啱50%先合格。可以喺小隊入面一齊討論，答題期間唔可以上網或者用電話。每組只可以挑戰一次。'
+            instruction: '內容:<br/>從搞事人手中抽一份時事常識問答比賽題目作答，答中50%先合格。可以成個小隊一齊討論，答題期間唔可以上網或者用電話。每組只可以挑戰一次。'
         },
         { 
             id: '3_pose', 
             title: '忘記 美不美', 
             admins: '蔡頭',
-            instruction: '內容:<br/>根據搞事人提供嘅圖片，合作還原圖中嘅情境，由搞事人影相確認完成'
+            instruction: '內容:<br/>根據搞事人所提供圖片，合作還原圖中情境，由搞事人影相確認完成'
         },
         { 
             id: '4_lyrics', 
             title: '由我來獨唱', 
             admins: '曹Hei',
-            instruction: '內容:<br/>由音樂情人曹Hei出題，考驗小隊成員嘅粵語音樂素養'
+            instruction: '內容:<br/>由音樂情人曹Hei出題，考驗小隊成員粵語音樂素養'
         },
         { 
             id: '5_photo', 
             title: '吊在漁網上娛賓', 
             admins: '一對新人',
-            instruction: '內容:<br/>交出一張【全組成員】同一對新人嘅合照'
+            instruction: '內容:<br/>交出一張【全組成員】同一對新人大合照'
         }
     ];
     
@@ -714,23 +717,23 @@ function renderMissions(gameData, squadColour, drinkSlots) {
         cardsHtml += `
             <div class="card-sketch border-2 border-black bg-white overflow-hidden shadow-[4px_4px_0_0_#000] mb-4">
                 <div class="${headerBg} text-white p-4 flex justify-between items-center cursor-pointer active:brightness-90 transition" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                    <h4 class="font-bold text-sm uppercase mono tracking-widest">${g.title}</h4>
+                    <h4 class="font-bold text-xl uppercase mono tracking-widest">${g.title}</h4>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="hidden flex-col bg-white text-black">
                     <!-- INSTRUCTION SECTION NEW -->
-                    <div class="p-4 pb-2 text-xs font-mono text-gray-800 leading-relaxed">
+                    <div class="p-4 pb-2 text-s font-mono text-gray-800 leading-relaxed">
                         ${g.instruction}
                     </div>
                     
                     <!-- ADMIN SECTION -->
-                    <div class="px-4 pb-4 text-xs font-mono text-gray-400 leading-relaxed">
+                    <div class="px-4 pb-4 text-s font-mono text-gray-400 leading-relaxed">
                         ${adminLabel} <br/>${g.admins}
                     </div>
                     
                     <div class="border-t border-gray-300 mx-4"></div>
                     <div class="p-4 flex justify-between items-center">
-                        <span class="font-bold text-xs">${marksLabel}</span>
+                        <span class="font-bold text-s">${marksLabel}</span>
                         <div class="w-6 h-6 border-2 border-black flex items-center justify-center bg-gray-50 shadow-[2px_2px_0_0_#000]">
                             ${checkboxContent}
                         </div>

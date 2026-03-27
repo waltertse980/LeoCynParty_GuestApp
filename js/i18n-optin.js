@@ -23,6 +23,8 @@
             survey_notes: "Notes to host",
             survey_notes_ph: "Anything we need to know?",
             survey_submit: "Submit Survey",
+
+            rundown_title: "Today's Rundown",
             
             // NOTICE TAB
             notice_board: "Notice Board",
@@ -99,7 +101,7 @@
 
             transport_title: "交通指引",
             transport_action: "CYN人指LEO",
-            transport_desc: "將會用你目前嘅位置搵出最佳路線",
+            transport_desc: "將會用你目前位置搵出最佳路線",
 
             survey_title: "事前問卷",
             survey_culinary: "特別飲食需求",
@@ -111,6 +113,8 @@
             survey_notes: "留言俾一對新人",
             survey_notes_ph: "有冇咩係要事前俾我哋知?",
             survey_submit: "提交問卷",
+
+            rundown_title: "日程",
 
             // NOTICE TAB
             notice_board: "通告欄",
@@ -124,8 +128,8 @@
             camera_btn: "打開相機",
 
             // TEAM TAB
-            squad_your_squad: "你嘅勾結勢力",
-            squad_find_colour: "搵同你一樣顏色嘅人！",
+            squad_your_squad: "勾結勢力",
+            squad_find_colour: "打開呢頁，睇吓邊個同你一樣顏色?",
 
             // PROFILE TAB
             uber_title: "搵人夾Uber",
@@ -137,7 +141,7 @@
             uber_error: "請先選擇目的地!",
             uber_btn_find: "即刻配對~",
             uber_disable_modal_title: "退出配對?",
-            uber_disable_modal_description: "您唔會再喺人哋嘅配對表上面出現，不過我哋會記得您嘅目的地，隨時再加入返都得~",
+            uber_disable_modal_description: "您唔會再喺人哋配對表上面出現，不過我哋會記得您個目的地，隨時再加入返都得~",
             uber_disable_modal_cancel: "返回",
             uber_disable_modal_confirm: "確認退出",
 
@@ -145,9 +149,9 @@
             uber_state_active: "已登記",
             uber_heading: "目的地: ",
             uber_match_false: "暫時未有順路的泥鯭...主動出擊搵人夾Uber啦!",
-            uber_match_exact: "以下嘅人目的地同你好近:",
+            uber_match_exact: "以下呢班人目的地同你好近:",
             uber_match_route: "呢班人或者都順路呀:",
-            uber_match_route_only: "以下嘅人可能同你順路:",
+            uber_match_route_only: "以下呢班人可能同你順路:",
 
             profile_memory: "精選照片",
             profile_drunk_title: "醉後聯絡人",
@@ -167,9 +171,9 @@
             about_version: "版本",
             about_credit: "用❤️為一對新人發電",
 
-            fb_title: "俾code🐶嘅意見",
+            fb_title: "俾意見小code🐶",
             fb_desc: "有問題、提議，話俾我知!",
-            fb_ph: "輸入您嘅意見...",
+            fb_ph: "輸入意見...",
             fb_submit: "提交",
 
             // TAB BAR

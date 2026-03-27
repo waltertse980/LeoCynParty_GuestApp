@@ -90,13 +90,14 @@ body.lang-zh .nav-item span {
 body.lang-zh #btn-save span,
 body.lang-zh [data-i18n="home_btn_transport"],
 body.lang-zh [data-i18n="home_btn_survey"],
+body.lang-zh [data-i18n="transport_action"],
 body.lang-zh [data-i18n="notice_updates"],
 body.lang-zh [data-i18n="notice_gotit"],
 body.lang-zh [data-i18n="camera_btn"],
 body.lang-zh #uber-status-text,
 body.lang-zh [data-i18n="profile_drunk_title"],
 body.lang-zh #drunk-error,
-body.lang-zh [data-i18n="profile_save"],
+body.lang-zh [data-i18n="camera_scan_desc"],
 body.lang-zh #settings-modal span {
     font-size: 18px !important;
     line-height: 1.4 !important;
@@ -108,10 +109,15 @@ body.lang-zh #settings-modal span {
 body.lang-zh #status-text,
 body.lang-zh #status-subtext,
 body.lang-zh [data-i18n="uber_title"],
+body.lang-zh [data-i18n="uber_activate_hint"],
+body.lang-zh [data-i18n="profile_memory"],
 body.lang-zh [data-i18n="profile_mayday"],
+body.lang-zh [data-i18n="profile_em"],
 body.lang-zh #uber-toggle-text {
     font-size: 14px !important;
 }
+
+
 
 /* =========================================================
    GLOBAL CHINESE FONT ENFORCEMENT
