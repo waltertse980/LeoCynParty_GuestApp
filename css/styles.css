@@ -94,10 +94,11 @@ body.lang-zh [data-i18n="transport_action"],
 body.lang-zh [data-i18n="notice_updates"],
 body.lang-zh [data-i18n="notice_gotit"],
 body.lang-zh [data-i18n="camera_btn"],
+body.lang-zh [data-i18n="camera_scan_desc"],
+body.lang-zh [data-i18n="squad_your_squad"],
 body.lang-zh #uber-status-text,
 body.lang-zh [data-i18n="profile_drunk_title"],
 body.lang-zh #drunk-error,
-body.lang-zh [data-i18n="camera_scan_desc"],
 body.lang-zh #settings-modal span {
     font-size: 18px !important;
     line-height: 1.4 !important;
@@ -108,6 +109,7 @@ body.lang-zh #settings-modal span {
 /* Slightly boost the Uber Status "ACTIVE/INACTIVE" span specifically since it might inherit poorly */
 body.lang-zh #status-text,
 body.lang-zh #status-subtext,
+body.lang-zh [data-i18n="squad_find_colour"],
 body.lang-zh [data-i18n="uber_title"],
 body.lang-zh [data-i18n="uber_activate_hint"],
 body.lang-zh [data-i18n="profile_memory"],

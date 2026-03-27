@@ -129,7 +129,7 @@
 
             // TEAM TAB
             squad_your_squad: "勾結勢力",
-            squad_find_colour: "打開呢頁，睇吓邊個同你一樣顏色?",
+            squad_find_colour: "打開呢頁，望望邊個同你一樣顏色?",
 
             // PROFILE TAB
             uber_title: "搵人夾Uber",
