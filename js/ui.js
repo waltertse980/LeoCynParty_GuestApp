@@ -613,7 +613,7 @@ const PARTY_TIPS = [
 ];
 
 // --- MISSION LOGIC ---
-function renderMissions(gameData, squadColour) {
+function renderMissions(gameData, squadColour, drinkSlots) {
     const isZh = document.body.classList.contains('lang-zh');
 
     const header = document.getElementById("mission-header");
