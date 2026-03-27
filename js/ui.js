@@ -663,14 +663,39 @@ function renderMissions(gameData, squadColour, drinkSlots) {
     }
 
     const games = [
-        { id: '1_buy', title: '很想到無邊搜索', admins: '阿水, Ella' },
-        { id: '2_iq', title: '愛也單純到 會忘掉智商', admins: '肥鴨' },
-        { id: '3_pose', title: '忘記 美不美', admins: '蔡頭' },
-        { id: '4_lyrics', title: '由我來獨唱', admins: '曹Hei' },
-        { id: '5_photo', title: '吊在漁網上娛賓', admins: '一對新人' }
+        { 
+            id: '1_buy', 
+            title: '很想到無邊搜索', 
+            admins: '阿水, Ella',
+            instruction: '內容:<br/>按搞事人指示，喺限時內交出指量數目嘅物品'
+        },
+        { 
+            id: '2_iq', 
+            title: '愛也單純到 會忘掉智商', 
+            admins: '肥鴨',
+            instruction: '內容:<br/>喺搞事人手中抽一份時事常識問答比賽題目作答，答啱50%先合格。可以喺小隊入面一齊討論，答題期間唔可以上網或者用電話。每組只可以挑戰一次。'
+        },
+        { 
+            id: '3_pose', 
+            title: '忘記 美不美', 
+            admins: '蔡頭',
+            instruction: '內容:<br/>根據搞事人提供嘅圖片，合作還原圖中嘅情境，由搞事人影相確認完成'
+        },
+        { 
+            id: '4_lyrics', 
+            title: '由我來獨唱', 
+            admins: '曹Hei',
+            instruction: '內容:<br/>由音樂情人曹Hei出題，考驗小隊成員嘅粵語音樂素養'
+        },
+        { 
+            id: '5_photo', 
+            title: '吊在漁網上娛賓', 
+            admins: '一對新人',
+            instruction: '內容:<br/>交出一張【全組成員】同一對新人嘅合照'
+        }
     ];
     
-    const adminLabel = isZh ? "負責搞事:" : "Designated Troublemaker(s):";
+    const adminLabel = "負責搞事:";
     const marksLabel = isZh ? "20分" : "20 marks";
 
     let completedCount = 0;
@@ -693,9 +718,16 @@ function renderMissions(gameData, squadColour, drinkSlots) {
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 <div class="hidden flex-col bg-white text-black">
-                    <div class="p-4 text-xs font-mono text-gray-600 leading-relaxed">
+                    <!-- INSTRUCTION SECTION NEW -->
+                    <div class="p-4 pb-2 text-xs font-mono text-gray-800 leading-relaxed">
+                        ${g.instruction}
+                    </div>
+                    
+                    <!-- ADMIN SECTION -->
+                    <div class="px-4 pb-4 text-xs font-mono text-gray-500 leading-relaxed">
                         ${adminLabel} <br/>${g.admins}
                     </div>
+                    
                     <div class="border-t border-gray-300 mx-4"></div>
                     <div class="p-4 flex justify-between items-center">
                         <span class="font-bold text-xs">${marksLabel}</span>
