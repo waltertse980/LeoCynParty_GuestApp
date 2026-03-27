@@ -457,6 +457,7 @@ async function populateUIWithGuestData() {
     setupNoticeAdmin();
     loadNotices();
     subscribeToGameUpdates();
+    setupGuestRealtimeSubscriptions();
 }
 
 // --- HOME LOGIC ---
@@ -1261,5 +1262,62 @@ function getLocalizedDistrictName(districtVal, isZh) {
     }
     return districtVal;
 }
+
+function setupGuestRealtimeSubscriptions() {
+    if (!guestData || !guestData.uid) return;
+
+    // 1. Listen for Check-in (Event Mode Activation)
+    if (window.statusSub) window.statusSub.unsubscribe();
+    window.statusSub = db.channel('guest-status')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'status', filter: `uid=eq.${guestData.uid}` }, (payload) => {
+            console.log('Live status update:', payload.new);
+            guestData.checkin_time = payload.new.checkin_time;
+            const isCheckedIn = guestData.checkin_time && guestData.checkin_time.toUpperCase() !== 'NULL';
+            
+            // Instantly transition to Event Mode UI
+            if (typeof updateHomeTabLayout === 'function') updateHomeTabLayout(isCheckedIn);
+            if (typeof updateStatusCard === 'function') updateStatusCard();
+        }).subscribe();
+
+    // 2. Listen for Mission Scoring & Drink Slot Changes
+    if (guestData.squad_name && guestData.squad_name.toUpperCase() !== 'UNASSIGNED') {
+        if (window.gameSub) window.gameSub.unsubscribe();
+        window.gameSub = db.channel('guest-game')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'game', filter: `squad_name=eq.${guestData.squad_name}` }, (payload) => {
+                console.log('Live game update:', payload.new);
+                const gd = payload.new;
+                
+                // Recalculate Drink Slots based on latest data
+                const gamesList = ['1_photo', '2_buy', '3_iq', '4_posture', '5_lyrics'];
+                let newDrinkSlots = 3;
+                gamesList.forEach(g => {
+                    if (!gd[g] || gd[g] === 'NULL') newDrinkSlots += 1;
+                });
+                
+                // Penalty Check
+                const now = new Date();
+                const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
+                let isPenalty = (now >= penaltyTime && newDrinkSlots === 8) || gd.penalty === true;
+                if (isPenalty) newDrinkSlots = 6;
+
+                // Visually update Mission Cards
+                let squadColor = guestData.squad_colour || '#2563EB';
+                if (!squadColor.startsWith('#')) squadColor = `#${squadColor}`;
+                if (typeof renderMissions === 'function') renderMissions(gd, squadColor, newDrinkSlots);
+
+                // Update Drink Slot Numbers on Home & Profile tabs
+                const homeNum = document.querySelector('#tab-home .text-5xl.font-black.handwritten');
+                if (homeNum) homeNum.textContent = String(newDrinkSlots);
+                
+                const profileNum = document.querySelector('#lbl-drink-slots-mini')?.parentElement?.querySelector('.text-xl.handwritten');
+                if (profileNum) profileNum.textContent = String(newDrinkSlots);
+                
+                // Toggle Penalty Text
+                const penaltyText = document.getElementById('txt-penalty');
+                if (penaltyText) isPenalty ? penaltyText.classList.remove('hidden') : penaltyText.classList.add('hidden');
+            }).subscribe();
+    }
+}
+
 
 nav('home');

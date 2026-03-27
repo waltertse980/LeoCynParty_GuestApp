@@ -109,6 +109,8 @@ body.lang-zh #settings-modal span {
 /* Slightly boost the Uber Status "ACTIVE/INACTIVE" span specifically since it might inherit poorly */
 body.lang-zh #status-text,
 body.lang-zh #status-subtext,
+body.lang-zh [data-i18n="fb_desc"],
+body.lang-zh [data-i18n="fb_ph"],
 body.lang-zh [data-i18n="squad_find_colour"],
 body.lang-zh [data-i18n="uber_title"],
 body.lang-zh [data-i18n="uber_activate_hint"],
