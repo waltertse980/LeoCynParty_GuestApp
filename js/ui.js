@@ -651,7 +651,7 @@ function renderMissions(gameData, squadColour, drinkSlots) {
                 console.error("Error fetching total drink slots:", e);
             }
 
-            const label = isZh ? "轉盤位置" : "Wheel";
+            const label = isZh ? "幸運(?)大抽獎" : "Wheel of Fortune";
             stickerContainer.innerHTML = `
                 <div class="bg-yellow-200 border border-yellow-400 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] px-3 py-2 rotate-[1.5deg] text-center min-w-[80px]"
                      style="font-family: 'Architects Daughter', cursive;">
@@ -724,7 +724,7 @@ function renderMissions(gameData, squadColour, drinkSlots) {
                     </div>
                     
                     <!-- ADMIN SECTION -->
-                    <div class="px-4 pb-4 text-xs font-mono text-gray-500 leading-relaxed">
+                    <div class="px-4 pb-4 text-xs font-mono text-gray-300 leading-relaxed">
                         ${adminLabel} <br/>${g.admins}
                     </div>
                     

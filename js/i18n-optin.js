@@ -125,7 +125,7 @@
 
             // TEAM TAB
             squad_your_squad: "你嘅勾結勢力",
-            squad_find_colour: "搵同你都係一樣顏色嘅人！",
+            squad_find_colour: "搵同你一樣顏色嘅人！",
 
             // PROFILE TAB
             uber_title: "搵人夾Uber",

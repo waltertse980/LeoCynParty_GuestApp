@@ -58,9 +58,6 @@ body.lang-zh .nav-item span {
 
 .iphone-container { max-width: 400px; margin: 0 auto; background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
-.mono { font-family: 'Space Mono', 'cwTeXFangSong', monospace; }
-.handwritten { font-family: 'Architects Daughter', 'cwTeXFangSong', cursive, serif; }
-
 .hidden-tab { display: none !important; }
 
 .btn-terracotta { background-color: var(--red); color: var(--cream); border: 2px solid var(--black); box-shadow: 3px 3px 0 0 var(--black); font-weight: bold; transition: all 0.1s; }
@@ -116,3 +113,38 @@ body.lang-zh #uber-toggle-text {
     font-size: 14px !important;
 }
 
+/* =========================================================
+   GLOBAL CHINESE FONT ENFORCEMENT
+   Forces cwTeXFangSong for all Chinese characters while 
+   preserving English font choices and protecting Icons.
+   ========================================================= */
+
+/* 1. Override standard Tailwind font classes */
+.font-sans, .font-serif, .font-mono {
+    font-family: 'Space Mono', 'cwTeXFangSong', monospace !important;
+}
+
+/* 2. Override your custom typography classes */
+.mono { 
+    font-family: 'Space Mono', 'cwTeXFangSong', monospace !important; 
+}
+
+.handwritten { 
+    font-family: 'Architects Daughter', 'cwTeXFangSong', cursive !important; 
+}
+
+/* 3. Catch-all for the body and ALL general text elements */
+body, body.lang-en, body.lang-zh, 
+div, p, span, h1, h2, h3, h4, h5, h6, button, input, textarea, select {
+    font-family: inherit;
+}
+
+body {
+    font-family: 'Space Mono', 'cwTeXFangSong', monospace !important;
+}
+
+/* 4. CRITICAL: Protect FontAwesome Icons from the !important overrides */
+i, .fa, .fas, .fa-solid, .far, .fa-regular, .fab, .fa-brands,
+[class^="fa-"], [class*=" fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+}
