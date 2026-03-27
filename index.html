@@ -61,6 +61,7 @@
 
         <!-- === TAB: HOME === -->
         <div id="tab-home" class="flex-1 overflow-y-auto pb-24">
+            <!-- HEADER -->
             <div class="bg-[var(--red)] text-[var(--cream)] px-8 pt-12 pb-4 border-b-4 border-black text-center relative">
                 <div class="mb-4">
                     <p id="txt-incoming" class="handwritten text-xl rotate-[-2deg]">Incoming! Incoming!</p>
@@ -92,7 +93,9 @@
                     </div>
                 </div>
             </div>
+            <!-- BODY -->
             <div class="p-6 space-y-6">
+                <!-- Status Card -->
                 <div id="status-card" class="card-sketch p-4 flex flex-col gap-4 bg-white relative">
                     <div class="flex items-center gap-4">
                         <div id="status-icon" class="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center">
@@ -109,19 +112,13 @@
                         <p id="txt-party-tip" class="text-xs handwritten text-gray-700"></p>
                     </div>
                 </div>
-
+                <!-- Transport Guide -->
                 <button id="btn-transport" class="w-full btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm"
                         data-modal-target="transport-modal">
                     <i class="fa-solid fa-map"></i>
                     <span data-i18n="home_btn_transport">TRANSPORTATION GUIDE</span>
                 </button>
-                
-                <button id="btn-survey" class="w-full btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm mb-4" 
-                        data-modal-target="survey-modal">
-                    <i class="fa-solid fa-clipboard"></i>
-                    <span data-i18n="home_btn_survey">QUICK SURVEY</span>
-                </button>
-
+                <!-- Transport Modal -->
                 <div id="transport-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
                   <div class="bg-white rounded-lg p-6 max-w-md w-full relative max-h-[80vh] overflow-y-auto">
                     <!-- Close X Icon (top-right corner) -->
@@ -146,7 +143,13 @@
                     <!-- Add more content as needed -->
                   </div>
                 </div>
-
+                <!-- Quick Survey -->
+                <button id="btn-survey" class="w-full btn-terracotta p-4 flex items-center justify-center gap-2 uppercase text-sm mb-4" 
+                        data-modal-target="survey-modal">
+                    <i class="fa-solid fa-clipboard"></i>
+                    <span data-i18n="home_btn_survey">QUICK SURVEY</span>
+                </button>
+                <!-- Survey Modal -->
                 <div id="survey-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
                     <div class="bg-white border-2 border-black rounded-lg p-6 max-w-md w-full relative max-h-[80vh] overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">                        <!-- Close X Icon (top-right corner) -->
                         <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
@@ -204,6 +207,55 @@
                         </div>
                     </div>
                 </div>
+                <!-- Timeline Card -->
+                <div class="card-sketch p-4 bg-white">
+                    <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Tonight's Rundown</h3>
+                    <div class="space-y-3">
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">15:00</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">被傳聞談論的瘋子挽着手</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">18:30</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">從大門張開的一刻看你如何微笑</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">20:00</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">我愛過哈囉吉蒂嗎？似乎沒有</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">20:20</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">待你好 願做蛋糕 可給你醫肚</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">20:40</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">口乾了便喝盡那密雲</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">21:00</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">黑色的佛像在伸手招我</p>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-[var(--red)] font-bold shrink-0 pt-0.5">00:00</span>
+                            <div class="w-px bg-gray-200 self-stretch mx-1 shrink-0"></div>
+                            <p class="text-xs text-gray-700 handwritten leading-snug">回家前飲到爛醉亦合情理</p>
+                        </div>
+
+                    </div>
+                </div>            
             </div>
         </div>
 
@@ -324,14 +376,24 @@
 
         <!-- === TAB: MISSIONS === -->
         <div id="tab-missions" class="flex-1 overflow-y-auto bg-[var(--cream)] hidden-tab">
-            <div id="mission-header" class="p-6 pt-12 border-b-4 border-black transition-colors" style="background-color: var(--blue);">
-                <h1 id="lbl-missions-title" class="mono text-3xl font-black text-white drop-shadow-[2px_2px_0_#000]">Mission</h1>
-                <p class="text-[10px] uppercase text-white font-bold mt-1 drop-shadow-[1px_1px_0_#000]">Progress: <span id="mission-progress-text">0%</span></p>
-                <div class="w-full bg-white h-2 mt-4 border border-black shadow-[2px_2px_0_0_#000]">
-                    <div id="mission-progress-bar" class="bg-black h-full transition-all duration-500" style="width: 0%"></div>
+            <div id="mission-header" class="p-6 pt-12 border-b-4 border-black transition-colors sticky top-0 z-20 shadow-md" style="background-color: var(--blue);">
+                <div class="flex items-start justify-between gap-3">
+                    <!-- Left: Title + Progress -->
+                    <div class="flex-1">
+                        <h1 id="lbl-missions-title" class="mono text-3xl font-black text-white drop-shadow-[2px_2px_0_#000]">Mission</h1>
+                        <p id="lbl-progress" class="text-[10px] uppercase text-white font-bold mt-1 drop-shadow-[1px_1px_0_#000]">
+                            Progress: <span id="mission-progress-text">0%</span>
+                        </p>
+                        <div class="w-full bg-white h-2 mt-4 border border-black shadow-[2px_2px_0_0_#000]">
+                            <div id="mission-progress-bar" class="bg-black h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <!-- Right: Drink Slot Memo Sticker -->
+                    <div id="mission-drink-sticker" class="shrink-0 mt-1">
+                        <!-- Injected by renderMissions() -->
+                    </div>
                 </div>
             </div>
-            
             <div id="mission-cards-container" class="p-4">
                  <!-- JavaScript will inject cards here -->
             </div>
@@ -341,11 +403,10 @@
         <div id="tab-team" class="flex-1 overflow-hidden relative hidden-tab bg-[var(--cream)]">
             <div id="team-bg" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center transition-colors">
                 <i class="fa-solid fa-users text-6xl mb-6 text-black opacity-50"></i>
-                <h2 class="text-sm font-mono uppercase tracking-widest mb-2 border-b-2 border-black pb-1 text-black font-bold">Your Squad</h2>
+                <h2 class="text-sm font-mono uppercase tracking-widest mb-2 border-b-2 border-black pb-1 text-black font-bold" data-i18n="squad_your_squad">Your Squad</h2>
                 <h1 id="lbl-squad" class="text-5xl font-black mb-6 mono rotate-[-5deg] drop-shadow-[4px_4px_0_#000] text-white">NEON BLUE</h1>
-                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2 shadow-[2px_2px_0_0_#000] mb-6">Find this color in the crowd.</p>
+                <p id="txt-team-hint" class="text-xs font-mono bg-black text-white p-2 shadow-[2px_2px_0_0_#000] mb-6" data-i18n="squad_find_colour">Find this color in the crowd.</p>
                 
-                <!-- NEW: Teammates List Container -->
                 <div id="team-members-list" class="w-full flex justify-center mt-2">
                     <!-- JavaScript will inject teammates here -->
                 </div>
