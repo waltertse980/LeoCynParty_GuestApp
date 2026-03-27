@@ -724,7 +724,7 @@ function renderMissions(gameData, squadColour, drinkSlots) {
                     </div>
                     
                     <!-- ADMIN SECTION -->
-                    <div class="px-4 pb-4 text-xs font-mono text-gray-300 leading-relaxed">
+                    <div class="px-4 pb-4 text-xs font-mono text-gray-400 leading-relaxed">
                         ${adminLabel} <br/>${g.admins}
                     </div>
                     
