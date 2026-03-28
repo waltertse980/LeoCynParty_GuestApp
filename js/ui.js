@@ -1264,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             keys: { p256dh: 'ABC123...', auth: 'DEF456...' }
         };
         
-        const { data, error } = await supabase.from('push_subscriptions').upsert({
+        const { data, error } = await db.from('push_subscriptions').upsert({
             uid,
             subscription: fakeSub,
             status: 'test-save'
