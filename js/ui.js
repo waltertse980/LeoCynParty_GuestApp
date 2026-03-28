@@ -1227,50 +1227,85 @@ if (camBtn) {
 
 // TEST VERSION - Deploy this FIRST
 document.addEventListener('DOMContentLoaded', () => {
-    const notifBtn = document.getElementById('btn-auth-notif');
-    console.log('🔍 DOM loaded. Button:', notifBtn);  // Check ID match
+    const notifBtn = document.getElementById('btn-auth-notif') || createTestButton();
     
-    if (!notifBtn) {
-        console.error('❌ #btn-auth-notif NOT FOUND');
-        // Auto-create if missing
-        const testBtn = document.createElement('button');
-        testBtn.id = 'btn-auth-notif';
-        testBtn.innerText = '🚨 TEST SAVE SUB';
-        testBtn.style.position = 'fixed'; testBtn.style.top = '10px'; testBtn.style.right = '10px';
-        testBtn.style.zIndex = '9999'; testBtn.style.padding = '20px'; testBtn.style.background = 'red';
-        document.body.appendChild(testBtn);
-        console.log('✅ Auto-created red test button');
-        notifBtn = testBtn;
+    notifBtn.onclick = async function(e) {
+        console.log('🎯 SAVE CLICKED');
+        e.preventDefault();
+        
+        // STEP 1: AUTO-LOGIN or GENERATE UID
+        let uid = window.guestData?.uid;
+        if (!uid) {
+            console.log('🔑 No guestData - auto-login');
+            
+            // Try QR key from URL/localStorage (your app pattern)
+            const urlParams = new URLSearchParams(window.location.search);
+            const qrKey = urlParams.get('key') || localStorage.getItem('qrKey');
+            
+            if (qrKey) {
+                uid = await autoLogin(qrKey);
+            } else {
+                // Generate test UID (real event: require QR scan)
+                uid = `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                console.log('🆕 Generated test UID:', uid);
+            }
+            
+            if (!uid) {
+                alert('Login with QR key first!');
+                return;
+            }
+        }
+        
+        console.log('✅ UID ready:', uid);
+        
+        // STEP 2: INSTANT SAVE
+        const fakeSub = {
+            endpoint: `https://sub-${uid}.push.services.mozilla.com`,
+            keys: { p256dh: 'ABC123...', auth: 'DEF456...' }
+        };
+        
+        const { data, error } = await supabase.from('push_subscriptions').upsert({
+            uid,
+            subscription: fakeSub,
+            status: 'test-save'
+        });
+        
+        console.log('💾 Result:', data, error);
+        alert(error ? `❌ ${error.message}` : `✅ Saved for UID: ${uid.slice(0,8)}...`);
+    };
+    
+    function createTestButton() {
+        const btn = document.createElement('button');
+        btn.id = 'btn-auth-notif';
+        btn.innerText = '🔔 SAVE SUB NOW';
+        btn.style.cssText = `
+            position:fixed; top:10px; right:10px; z-index:9999;
+            padding:15px 20px; background:#B32A19; color:white;
+            border:none; border-radius:8px; font-weight:bold;
+        `;
+        document.body.append(btn);
+        console.log('✅ Created RED test button');
+        return btn;
     }
     
-    notifBtn.onclick = function(e) {
-        console.log('🎯 BUTTON RAW CLICK!');  // Fires FIRST
-        
-        if (!window.supabase) {
-            console.error('❌ supabase missing');
-            alert('Supabase not loaded!');
-            return;
+    async function autoLogin(qrKey) {
+        try {
+            const { data: profile } = await supabase
+                .from('profile')
+                .select('uid')
+                .eq('authid', qrKey.trim())
+                .single();
+            
+            if (profile) {
+                window.guestData = { uid: profile.uid };  // Mock full data
+                console.log('✅ Auto-login success:', profile.uid);
+                return profile.uid;
+            }
+        } catch (e) {
+            console.log('Auto-login fail:', e);
         }
-        
-        if (!window.guestData?.uid) {
-            console.error('❌ guestData.uid missing:', window.guestData);
-            alert('No login!');
-            return;
-        }
-        
-        // INSTANT SUPABASE TEST
-        supabase.from('push_subscriptions').insert({
-            uid: guestData.uid,
-            subscription: { fake: true, uid: guestData.uid },
-            status: 'test-click'
-        }).then(({data, error}) => {
-            console.log('✅ INSERT:', data, error);
-            alert(error ? 'FAIL: ' + error.message : '🎉 SAVED! Check table.');
-        }).catch(err => {
-            console.error('💥:', err);
-            alert('ERROR: ' + err.message);
-        });
-    };
+        return null;
+    }
 });
 
 // Helper to extract localized district name
