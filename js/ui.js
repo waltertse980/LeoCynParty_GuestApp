@@ -1237,6 +1237,15 @@ if (notifBtn) {
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
                 alert("Notifications enabled successfully!");
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array('BOnGCym7arrYw2lqJw7gkPu2V1JjRj7lRF-J5UaAdhKUt00XOn8PeZ5PXsWl4g_wvGI5KHu5tfMYj6F_zf2qUU8')
+                });
+                await supabase.from('push_subscriptions').upsert({
+                    uid: guestData.uid,
+                    subscription: subscription
+                });
             } else {
                 alert("Notification access denied.");
             }
@@ -1302,45 +1311,81 @@ function setupGuestRealtimeSubscriptions() {
             
         }).subscribe();
 
-    // 2. Listen for Mission Scoring & Drink Slot Changes
+    // 2. Listen for Mission Scoring + Auto-Update drink_slot
     if (guestData.squad_name && guestData.squad_name.toUpperCase() !== 'UNASSIGNED') {
         if (window.gameSub) window.gameSub.unsubscribe();
+        
         window.gameSub = db.channel('guest-game')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'game', filter: `squad_name=eq.${guestData.squad_name}` }, (payload) => {
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'game', 
+                filter: `squad_name=eq.${guestData.squad_name}` 
+            }, async (payload) => {
                 console.log('Live game update:', payload.new);
                 const gd = payload.new;
                 
-                // Recalculate Drink Slots based on latest data
-                const gamesList = ['1_photo', '2_buy', '3_iq', '4_posture', '5_lyrics'];
-                let newDrinkSlots = 3;
-                gamesList.forEach(g => {
-                    if (!gd[g] || gd[g] === 'NULL') newDrinkSlots += 1;
-                });
+                // ✅ IMMEDIATE: Recalculate and WRITE drink_slot back to DB
+                const newDrinkSlots = await recalculateAndUpdateDrinkSlot(gd);
                 
-                // Penalty Check
-                const now = new Date();
-                const penaltyTime = new Date('2026-03-28T20:30:00+08:00');
-                let isPenalty = (now >= penaltyTime && newDrinkSlots === 8) || gd.penalty === true;
-                if (isPenalty) newDrinkSlots = 6;
-
-                // Visually update Mission Cards
-                let squadColor = guestData.squad_colour || '#2563EB';
-                if (!squadColor.startsWith('#')) squadColor = `#${squadColor}`;
+                // Update local guestData for UI
+                guestData.drink_slot = newDrinkSlots;
+                
+                // Refresh all UI components
+                const squadColor = guestData.squad_colour ? `#${guestData.squad_colour}` : '#2563EB';
                 if (typeof renderMissions === 'function') renderMissions(gd, squadColor, newDrinkSlots);
-
-                // Update Drink Slot Numbers on Home & Profile tabs
+                
+                // Update drink slot displays
                 const homeNum = document.querySelector('#tab-home .text-5xl.font-black.handwritten');
                 if (homeNum) homeNum.textContent = String(newDrinkSlots);
                 
-                const profileNum = document.querySelector('#lbl-drink-slots-mini')?.parentElement?.querySelector('.text-xl.handwritten');
+                const profileNum = document.querySelector('#tab-profile lbl-drink-slots-mini?.parentElement?.querySelector.text-xl.handwritten');
                 if (profileNum) profileNum.textContent = String(newDrinkSlots);
-                
-                // Toggle Penalty Text
-                const penaltyText = document.getElementById('txt-penalty');
-                if (penaltyText) isPenalty ? penaltyText.classList.remove('hidden') : penaltyText.classList.add('hidden');
-            }).subscribe();
+            })
+            .subscribe();
     }
 }
 
+// 🚀 CENTRAL DRINK SLOT CALCULATOR — Writes back to DB
+async function recalculateAndUpdateDrinkSlot(gameData) {
+    if (!gameData || !gameData.squad_name) return 3;
+    
+    let drinkSlots = 3; // Base
+    const gamesList = ['1_buy', '2_iq', '3_pose', '4_lyrics','5_photo'];
+    
+    // Count empty games (+1 each)
+    let emptyCount = 0;
+    gamesList.forEach(g => {
+        if (!gameData[g] || gameData[g] === null || gameData[g] === '') emptyCount++;
+    });
+    drinkSlots += emptyCount;
+    
+    // Penalty logic
+    let isPenalty = gameData.penalty === true;
+    const now = new Date();
+    const penaltyTime = new Date('2026-03-28T20:00:00+08:00'); // 20:30 HK time
+    
+    if (now >= penaltyTime && emptyCount === 5) {
+        isPenalty = true;
+    }
+    
+    if (isPenalty) drinkSlots += 6; // Penalty deduction
+    
+    console.log(`Drink slots recalculated: ${drinkSlots} (empty: ${emptyCount}, penalty: ${isPenalty})`);
+    
+    // ✅ AUTO-WRITE BACK TO DB
+    const { error } = await db
+        .from('game')
+        .update({ drink_slot: drinkSlots })
+        .eq('squad_name', gameData.squad_name);
+    
+    if (error) {
+        console.error('Failed to update drink_slot:', error);
+    } else {
+        console.log(`✅ Updated drink_slot=${drinkSlots} for ${gameData.squad_name}`);
+    }
+    
+    return drinkSlots;
+}
 
 nav('home');
